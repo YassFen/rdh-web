@@ -1,508 +1,255 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RDH — Medición Vehicular con IA</title>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/SplitText.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --teal: #3ECBA0;
-      --teal-dark: #2BA882;
-      --teal-glow: rgba(62,203,160,0.15);
-      --black: #080808;
-      --white: #FAFAFA;
-      --mid: rgba(255,255,255,0.45);
-      --border: rgba(255,255,255,0.08);
-      --font-head: 'Instrument Serif', Georgia, serif;
-      --font-body: 'Inter', sans-serif;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --black:#0A0A0A;
+      --white:#F7F6F3;
+      --gray:#F0EEE9;
+      --mid:#888;
+      --border:#E0DDD6;
+      --border-dark:#1A1A1A;
+      --accent:#0A0A0A;
+      --font-head:'Instrument Serif',Georgia,serif;
+      --font-body:'Inter',sans-serif;
     }
-    html { scroll-behavior: auto; }
-    body {
-      background: var(--black); color: var(--white);
-      font-family: var(--font-body); line-height: 1.6;
-      overflow-x: hidden; cursor: none;
-    }
-    ::selection { background: var(--teal); color: #000; }
-    ::-webkit-scrollbar { width: 3px; }
-    ::-webkit-scrollbar-thumb { background: var(--teal); }
+    html{scroll-behavior:auto}
+    body{background:var(--white);color:var(--black);font-family:var(--font-body);line-height:1.6;overflow-x:hidden;cursor:none}
+    ::selection{background:var(--black);color:var(--white)}
+    ::-webkit-scrollbar{width:2px}
+    ::-webkit-scrollbar-thumb{background:var(--black)}
 
-    /* ── CURSOR ── */
-    #cursor {
-      position: fixed; top: 0; left: 0; z-index: 9999;
-      pointer-events: none; mix-blend-mode: difference;
-    }
-    #cursor-dot {
-      width: 8px; height: 8px; background: var(--white);
-      border-radius: 50%;
-      position: absolute; transform: translate(-50%,-50%);
-      transition: width .2s, height .2s, background .2s;
-    }
-    #cursor-ring {
-      width: 40px; height: 40px;
-      border: 1px solid rgba(255,255,255,0.5);
-      border-radius: 50%;
-      position: absolute; transform: translate(-50%,-50%);
-      transition: width .3s, height .3s, border-color .3s;
-    }
-    body.cursor-hover #cursor-dot { width: 12px; height: 12px; background: var(--teal); }
-    body.cursor-hover #cursor-ring { width: 56px; height: 56px; border-color: var(--teal); }
+    /* CURSOR */
+    #cursor{position:fixed;top:0;left:0;z-index:9999;pointer-events:none}
+    #cursor-dot{width:6px;height:6px;background:var(--black);border-radius:50%;position:absolute;transform:translate(-50%,-50%);transition:width .2s,height .2s}
+    #cursor-ring{width:36px;height:36px;border:1px solid rgba(0,0,0,0.3);border-radius:50%;position:absolute;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s}
+    body.ch #cursor-dot{width:10px;height:10px}
+    body.ch #cursor-ring{width:52px;height:52px;border-color:rgba(0,0,0,0.7)}
 
-    /* ── NAV ── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 56px; height: 72px;
-      transition: background 0.5s, backdrop-filter 0.5s;
-    }
-    nav.scrolled {
-      background: rgba(8,8,8,0.85);
-      backdrop-filter: blur(24px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-logo { display: flex; align-items: center; gap: 10px; }
-    .nav-logo-mark {
-      width: 32px; height: 32px;
-      border: 1.5px solid var(--teal);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .nav-logo-text {
-      font-family: 'Inter', sans-serif; font-size: 18px; font-weight: 700;
-      color: var(--white); letter-spacing: 0.05em;
-    }
-    .nav-links { display: flex; gap: 40px; list-style: none; }
-    .nav-links a {
-      color: var(--mid); text-decoration: none;
-      font-size: 13px; font-weight: 400; letter-spacing: 0.06em;
-      text-transform: uppercase;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--white); }
-    .nav-cta {
-      background: var(--teal); color: #000;
-      font-family: var(--font-body); font-weight: 600; font-size: 13px;
-      padding: 10px 24px; border: none; cursor: none;
-      border-radius: 4px; letter-spacing: 0.04em;
-      transition: background 0.2s, transform 0.15s;
-    }
-    .nav-cta:hover { background: #fff; transform: scale(1.03); }
+    /* NAV */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 60px;height:68px;transition:background .4s,border-color .4s;border-bottom:1px solid transparent}
+    nav.sc{background:rgba(247,246,243,0.92);backdrop-filter:blur(20px);border-bottom-color:var(--border)}
+    .nav-logo{display:flex;align-items:center;gap:9px}
+    .nav-mark{width:28px;height:28px;border:1.5px solid var(--black);border-radius:5px;display:flex;align-items:center;justify-content:center}
+    .nav-name{font-family:var(--font-body);font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--black)}
+    .nav-links{display:flex;gap:36px;list-style:none}
+    .nav-links a{color:var(--mid);text-decoration:none;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;transition:color .2s}
+    .nav-links a:hover{color:var(--black)}
+    .nav-cta{background:var(--black);color:var(--white);font-family:var(--font-body);font-weight:600;font-size:12px;padding:9px 22px;border:none;cursor:none;border-radius:3px;letter-spacing:.04em;transition:opacity .2s,transform .15s}
+    .nav-cta:hover{opacity:.8;transform:scale(1.02)}
 
-    /* ── HERO ── */
-    #hero {
-      height: 100vh; min-height: 700px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      position: relative; overflow: hidden;
-      background: var(--black);
-    }
-    #hero-canvas {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-    }
-    .hero-content {
-      position: relative; z-index: 2;
-      text-align: center; padding: 0 32px;
-      max-width: 1000px;
-    }
-    .hero-tag {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 11px; font-weight: 600; letter-spacing: 0.2em;
-      text-transform: uppercase; color: var(--teal);
-      border: 1px solid rgba(62,203,160,0.3);
-      padding: 7px 18px; border-radius: 100px;
-      margin-bottom: 40px; opacity: 0;
-    }
-    .tag-dot { width: 5px; height: 5px; background: var(--teal); border-radius: 50%; }
-    h1 {
-      font-family: var(--font-head);
-      font-size: clamp(52px, 7.5vw, 108px);
-      font-weight: 400; letter-spacing: -0.02em; line-height: 0.95;
-      font-style: italic;
-      color: var(--white); margin-bottom: 32px;
-    }
-    h1 .line { display: block; overflow: hidden; }
-    h1 .word { display: inline-block; transform: translateY(110%); }
-    h1 em { font-style: normal; color: var(--teal); }
-    .hero-sub {
-      font-size: clamp(16px, 1.5vw, 19px);
-      color: var(--mid); max-width: 480px;
-      margin: 0 auto 48px; line-height: 1.7;
-      opacity: 0;
-    }
-    .hero-btns {
-      display: flex; gap: 14px;
-      justify-content: center; flex-wrap: wrap;
-      opacity: 0;
-    }
-    .btn-primary {
-      background: var(--teal); color: #000;
-      font-weight: 600; font-size: 14px; letter-spacing: 0.03em;
-      padding: 16px 36px; border: none; cursor: none;
-      border-radius: 4px; text-decoration: none;
-      display: inline-flex; align-items: center; gap: 8px;
-      transition: background 0.2s, transform 0.15s;
-    }
-    .btn-primary:hover { background: #fff; transform: scale(1.03); }
-    .btn-ghost {
-      background: transparent; color: var(--white);
-      font-weight: 400; font-size: 14px; letter-spacing: 0.03em;
-      padding: 16px 36px; border: 1px solid var(--border); cursor: none;
-      border-radius: 4px; text-decoration: none;
-      display: inline-flex; align-items: center; gap: 8px;
-      transition: border-color 0.2s, color 0.2s, transform 0.15s;
-    }
-    .btn-ghost:hover { border-color: rgba(255,255,255,0.4); transform: scale(1.03); }
-    .hero-scroll {
-      position: absolute; bottom: 40px; left: 50%;
-      transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      opacity: 0; z-index: 2;
-    }
-    .scroll-line {
-      width: 1px; height: 60px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent);
-      animation: scrollLine 2s ease-in-out infinite;
-    }
-    @keyframes scrollLine { 0%,100%{transform:scaleY(1);transform-origin:top} 50%{transform:scaleY(0.5);transform-origin:top} }
-    .scroll-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mid); }
+    /* HERO */
+    #hero{height:100vh;min-height:680px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:var(--white)}
+    #hero-canvas{position:absolute;inset:0;width:100%;height:100%}
+    .hero-content{position:relative;z-index:2;text-align:center;padding:0 32px;max-width:960px}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--mid);margin-bottom:36px;opacity:0}
+    .eyebrow-sep{width:24px;height:1px;background:var(--mid)}
+    h1{font-family:var(--font-head);font-size:clamp(48px,7vw,104px);font-weight:400;letter-spacing:-.02em;line-height:.95;font-style:italic;color:var(--black);margin-bottom:28px}
+    h1 .line{display:block;overflow:hidden}
+    h1 .word{display:inline-block;transform:translateY(110%)}
+    h1 em{font-style:normal;font-family:var(--font-body);font-weight:700;font-size:.65em;vertical-align:baseline;letter-spacing:-.01em}
+    .hero-sub{font-size:clamp(15px,1.4vw,18px);color:var(--mid);max-width:440px;margin:0 auto 44px;line-height:1.75;opacity:0;font-weight:400}
+    .hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;opacity:0}
+    .btn-primary{background:var(--black);color:var(--white);font-weight:600;font-size:13px;letter-spacing:.03em;padding:14px 32px;border:none;cursor:none;border-radius:3px;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:opacity .2s,transform .15s}
+    .btn-primary:hover{opacity:.8;transform:scale(1.02)}
+    .btn-ghost{background:transparent;color:var(--black);font-weight:400;font-size:13px;letter-spacing:.03em;padding:14px 32px;border:1px solid var(--border);cursor:none;border-radius:3px;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:border-color .2s,transform .15s}
+    .btn-ghost:hover{border-color:var(--black);transform:scale(1.02)}
+    .hero-scroll{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;z-index:2}
+    .scroll-line{width:1px;height:52px;background:linear-gradient(to bottom,rgba(0,0,0,.35),transparent);animation:sl 2s ease-in-out infinite}
+    @keyframes sl{0%,100%{transform:scaleY(1);transform-origin:top}50%{transform:scaleY(.5);transform-origin:top}}
+    .scroll-label{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--mid)}
 
-    /* ── MARQUEE ── */
-    .marquee-wrap {
-      overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      background: rgba(62,203,160,0.03);
-      padding: 18px 0;
-    }
-    .marquee-track {
-      display: flex; gap: 60px; width: max-content;
-      animation: marquee 28s linear infinite;
-    }
-    .marquee-track:hover { animation-play-state: paused; }
-    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-    .marquee-item {
-      font-size: 12px; font-weight: 600; letter-spacing: 0.15em;
-      text-transform: uppercase; color: var(--mid);
-      white-space: nowrap; display: flex; align-items: center; gap: 20px;
-    }
-    .marquee-sep { width: 4px; height: 4px; background: var(--teal); border-radius: 50%; opacity: 0.5; }
+    /* MARQUEE */
+    .marquee-wrap{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;background:var(--gray)}
+    .marquee-track{display:flex;gap:52px;width:max-content;animation:mq 32s linear infinite}
+    .marquee-track:hover{animation-play-state:paused}
+    @keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    .mq-item{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);white-space:nowrap;display:flex;align-items:center;gap:18px}
+    .mq-dot{width:3px;height:3px;background:var(--mid);border-radius:50%}
 
-    /* ── STATS ── */
-    .stats-bar {
-      display: grid; grid-template-columns: repeat(4,1fr);
-      border-bottom: 1px solid var(--border);
-    }
-    .stat-item {
-      padding: 52px 40px; border-right: 1px solid var(--border);
-      position: relative; overflow: hidden;
-    }
-    .stat-item::before {
-      content: '';
-      position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-      background: var(--teal); transform: scaleX(0); transform-origin: left;
-      transition: transform 0.6s cubic-bezier(.22,1,.36,1);
-    }
-    .stat-item:hover::before { transform: scaleX(1); }
-    .stat-item:last-child { border-right: none; }
-    .stat-num {
-      font-family: 'Inter', sans-serif; font-size: 52px; font-weight: 700;
-      color: var(--white); line-height: 1; letter-spacing: -0.04em;
-    }
-    .stat-num span { color: var(--teal); }
-    .stat-label { font-size: 13px; color: var(--mid); margin-top: 10px; letter-spacing: 0.02em; }
+    /* STATS */
+    .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);background:var(--white)}
+    .stat-item{padding:48px 40px;border-right:1px solid var(--border);position:relative;overflow:hidden}
+    .stat-item::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--black);transform:scaleX(0);transform-origin:left;transition:transform .6s cubic-bezier(.22,1,.36,1)}
+    .stat-item:hover::after{transform:scaleX(1)}
+    .stat-item:last-child{border-right:none}
+    .stat-num{font-family:var(--font-body);font-size:48px;font-weight:700;color:var(--black);line-height:1;letter-spacing:-.04em}
+    .stat-label{font-size:12px;color:var(--mid);margin-top:8px;letter-spacing:.02em}
 
-    /* ── SECTION BASE ── */
-    section { padding: 140px 80px; position: relative; }
-    .section-tag {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.22em;
-      text-transform: uppercase; color: var(--teal); margin-bottom: 20px;
-    }
-    h2 {
-      font-family: var(--font-head);
-      font-size: clamp(36px, 4.5vw, 68px);
-      font-weight: 400; letter-spacing: -0.02em; line-height: 1.05;
-      font-style: italic;
-      color: var(--white);
-    }
-    .section-intro {
-      font-size: 18px; color: var(--mid); max-width: 460px;
-      margin-top: 20px; line-height: 1.75;
-    }
+    /* SECTIONS */
+    section{padding:128px 80px;position:relative}
+    .section-tag{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--mid);margin-bottom:18px}
+    h2{font-family:var(--font-head);font-size:clamp(34px,4.2vw,64px);font-weight:400;letter-spacing:-.02em;line-height:1.05;color:var(--black);font-style:italic}
+    .section-intro{font-size:17px;color:var(--mid);max-width:420px;margin-top:18px;line-height:1.8;font-weight:400}
 
-    /* ── SERVICIOS ── */
-    #servicios { background: var(--black); }
-    .servicios-header {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 80px; align-items: end; margin-bottom: 80px;
-    }
-    .cards-grid {
-      display: grid; grid-template-columns: repeat(2,1fr); gap: 2px;
-      background: var(--border);
-    }
-    .card {
-      background: var(--black); padding: 52px 48px;
-      position: relative; overflow: hidden;
-      transition: background 0.4s;
-    }
-    .card::after {
-      content: '';
-      position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--teal), transparent);
-      opacity: 0; transition: opacity 0.4s;
-    }
-    .card:hover { background: rgba(62,203,160,0.04); }
-    .card:hover::after { opacity: 1; }
-    .card-num {
-      font-family: var(--font-head); font-size: 11px; font-weight: 700;
-      letter-spacing: 0.2em; color: var(--teal); opacity: 0.6; margin-bottom: 40px;
-    }
-    .card-icon { width: 48px; height: 48px; margin-bottom: 28px; }
-    .card h3 {
-      font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 600;
-      margin-bottom: 14px; color: var(--white); letter-spacing: -0.02em;
-    }
-    .card p { font-size: 15px; color: var(--mid); line-height: 1.7; }
+    /* SERVICIOS */
+    #servicios{background:var(--white);border-top:1px solid var(--border)}
+    .svc-header{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:end;margin-bottom:72px}
+    .cards-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border:1px solid var(--border)}
+    .card{background:var(--white);padding:48px 44px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden;transition:background .3s}
+    .card:nth-child(even){border-right:none}
+    .card:nth-child(3),.card:nth-child(4){border-bottom:none}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--black);transform:scaleX(0);transform-origin:left;transition:transform .5s cubic-bezier(.22,1,.36,1)}
+    .card:hover{background:var(--gray)}
+    .card:hover::before{transform:scaleX(1)}
+    .card-num{font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--mid);margin-bottom:36px}
+    .card-icon{width:40px;height:40px;margin-bottom:24px}
+    .card h3{font-family:var(--font-body);font-size:20px;font-weight:600;margin-bottom:12px;color:var(--black);letter-spacing:-.01em}
+    .card p{font-size:14px;color:var(--mid);line-height:1.75}
 
-    /* ── PROCESO (sticky scroll) ── */
-    #proceso {
-      background: #0D0D0D;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    .proceso-inner { max-width: 1200px; margin: 0 auto; }
-    .proceso-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 100px;
-      margin-top: 80px; align-items: start;
-    }
-    .proceso-steps { display: flex; flex-direction: column; }
-    .step {
-      padding: 36px 0; border-top: 1px solid var(--border);
-      cursor: pointer; position: relative;
-      transition: all 0.3s;
-    }
-    .step:last-child { border-bottom: 1px solid var(--border); }
-    .step-header { display: flex; align-items: center; gap: 16px; }
-    .step-number {
-      font-family: var(--font-head); font-size: 12px; font-weight: 700;
-      letter-spacing: 0.15em; color: var(--border);
-      transition: color 0.3s;
-    }
-    .step.active .step-number { color: var(--teal); }
-    .step-title {
-      font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 600;
-      color: rgba(255,255,255,0.4); letter-spacing: -0.02em;
-      transition: color 0.3s;
-    }
-    .step.active .step-title { color: var(--white); }
-    .step-body {
-      font-size: 15px; color: var(--mid); line-height: 1.75;
-      max-height: 0; overflow: hidden;
-      transition: max-height 0.5s ease, opacity 0.4s, margin 0.4s;
-      opacity: 0; margin-top: 0; padding-left: 28px;
-    }
-    .step.active .step-body { max-height: 120px; opacity: 1; margin-top: 16px; }
-    .step-bar {
-      position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-      background: var(--teal); transform: scaleY(0); transform-origin: top;
-      transition: transform 0.5s cubic-bezier(.22,1,.36,1);
-    }
-    .step.active .step-bar { transform: scaleY(1); }
+    /* PROCESO — minimalista */
+    #proceso{background:var(--gray);border-top:1px solid var(--border)}
+    .proc-inner{max-width:1100px;margin:0 auto}
+    .proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:96px;margin-top:72px;align-items:start}
+    .proc-steps{}
+    .step{padding:28px 0;border-top:1px solid var(--border);cursor:pointer;position:relative}
+    .step:last-child{border-bottom:1px solid var(--border)}
+    .step-row{display:flex;align-items:center;gap:20px;justify-content:space-between}
+    .step-left{display:flex;align-items:center;gap:16px}
+    .step-num{font-size:11px;font-weight:600;letter-spacing:.15em;color:var(--mid);transition:color .3s;min-width:24px}
+    .step-title{font-family:var(--font-body);font-size:17px;font-weight:500;color:rgba(0,0,0,.35);letter-spacing:-.01em;transition:color .3s}
+    .step-plus{font-size:18px;color:var(--mid);transition:transform .35s,color .3s;line-height:1}
+    .step.active .step-num{color:var(--black)}
+    .step.active .step-title{color:var(--black)}
+    .step.active .step-plus{transform:rotate(45deg);color:var(--black)}
+    .step-body{font-size:14px;color:var(--mid);line-height:1.8;max-height:0;overflow:hidden;transition:max-height .45s ease,opacity .35s,padding .35s;opacity:0;padding-left:40px}
+    .step.active .step-body{max-height:100px;opacity:1;padding-top:14px}
 
-    .proceso-visual {
-      position: sticky; top: 120px;
-      height: 480px; border-radius: 16px;
-      background: #111; overflow: hidden;
-      border: 1px solid var(--border);
-    }
-    .vis-panel {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 24px; padding: 48px;
-      opacity: 0; transform: translateY(20px);
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    .vis-panel.active { opacity: 1; transform: translateY(0); }
-    .vis-title {
-      font-family: 'Inter', sans-serif; font-size: 20px; font-weight: 600;
-      color: var(--white); text-align: center; letter-spacing: -0.02em;
-    }
-    .vis-sub { font-size: 14px; color: var(--mid); text-align: center; }
+    /* Visual panel lado derecho */
+    .proc-visual{position:sticky;top:110px;height:420px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .vis-panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:48px;opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s}
+    .vis-panel.active{opacity:1;transform:translateY(0)}
+    .vis-title{font-family:var(--font-body);font-size:18px;font-weight:600;color:var(--black);text-align:center;letter-spacing:-.01em}
+    .vis-sub{font-size:13px;color:var(--mid);text-align:center;line-height:1.7}
+    .vis-step-num{font-size:72px;font-weight:700;color:rgba(0,0,0,.06);font-family:var(--font-body);line-height:1;position:absolute;right:32px;bottom:24px;letter-spacing:-.06em}
 
-    /* ── DASHBOARD ── */
-    #dashboard { background: var(--black); }
-    .dash-header {
-      display: flex; justify-content: space-between; align-items: flex-end;
-      margin-bottom: 60px; flex-wrap: wrap; gap: 24px;
-    }
-    .live-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(62,203,160,0.08); border: 1px solid rgba(62,203,160,0.2);
-      color: var(--teal); font-size: 11px; font-weight: 700;
-      letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 8px 20px; border-radius: 100px;
-    }
-    .pulse { width: 6px; height: 6px; background: var(--teal); border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.6)} }
-    .dash-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); margin-bottom: 1px; }
-    .metric-card {
-      background: #0D0D0D; padding: 36px 32px;
-      position: relative; overflow: hidden;
-    }
-    .metric-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
-      text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 16px;
-    }
-    .metric-val {
-      font-family: 'Inter', sans-serif; font-size: 44px; font-weight: 700;
-      color: var(--teal); line-height: 1; letter-spacing: -0.04em; margin-bottom: 8px;
-    }
-    .metric-delta { font-size: 13px; color: rgba(255,255,255,0.35); }
-    .charts-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1px; background: var(--border); }
-    .chart-card { background: #0D0D0D; padding: 36px 32px; }
-    .chart-title {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
-      text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 24px;
-    }
-    .vtypes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-    .vtype {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 6px 16px; border: 1px solid var(--border);
-      border-radius: 100px; color: var(--mid);
-      cursor: none; background: transparent; transition: all 0.2s;
-    }
-    .vtype.active, .vtype:hover { border-color: var(--teal); color: var(--teal); background: rgba(62,203,160,0.08); }
+    /* DASHBOARD */
+    #dashboard{background:var(--white);border-top:1px solid var(--border)}
+    .dash-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:52px;flex-wrap:wrap;gap:20px}
+    .pc-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden}
+    .pc-tab{font-size:12px;font-weight:500;letter-spacing:.04em;padding:9px 18px;background:transparent;border:none;cursor:none;color:var(--mid);transition:background .2s,color .2s;border-right:1px solid var(--border)}
+    .pc-tab:last-child{border-right:none}
+    .pc-tab.active{background:var(--black);color:var(--white)}
+    .live-badge{display:inline-flex;align-items:center;gap:7px;background:var(--gray);border:1px solid var(--border);color:var(--mid);font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:7px 16px;border-radius:3px}
+    .pulse{width:5px;height:5px;background:#22c55e;border-radius:50%;animation:pls 1.5s ease-in-out infinite}
+    @keyframes pls{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
 
-    /* ── CLIENTES ── */
-    #clientes { background: #080808; border-top: 1px solid var(--border); }
-    .clientes-header { text-align: center; max-width: 640px; margin: 0 auto 80px; }
-    .clientes-header .section-intro { margin: 0 auto; }
-    .sectores-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: var(--border); }
-    .sector-card {
-      background: #0D0D0D; padding: 48px 32px; text-align: center;
-      transition: background 0.3s;
-      position: relative; overflow: hidden;
-    }
-    .sector-card::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: var(--teal); transform: scaleX(0);
-      transition: transform 0.4s cubic-bezier(.22,1,.36,1);
-    }
-    .sector-card:hover { background: rgba(62,203,160,0.04); }
-    .sector-card:hover::before { transform: scaleX(1); }
-    .sector-icon { width: 48px; height: 48px; margin: 0 auto 24px; }
-    .sector-card h3 {
-      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
-      margin-bottom: 10px; color: var(--white); letter-spacing: -0.01em;
-    }
-    .sector-card p { font-size: 13px; color: var(--mid); line-height: 1.6; }
+    /* Interval selector */
+    .interval-row{display:flex;align-items:center;gap:12px;margin-bottom:36px}
+    .interval-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mid)}
+    .iv-btn{font-size:11px;font-weight:500;padding:6px 14px;border:1px solid var(--border);background:transparent;cursor:none;border-radius:3px;color:var(--mid);transition:all .2s}
+    .iv-btn.active{background:var(--black);color:var(--white);border-color:var(--black)}
 
-    /* ── CTA FINAL ── */
-    #cta-final {
-      background: var(--black);
-      border-top: 1px solid var(--border);
-      text-align: center; padding: 160px 80px;
-      position: relative; overflow: hidden;
-    }
-    .cta-bg-glow {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(62,203,160,0.08) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    #cta-final h2 {
-      font-size: clamp(48px, 6vw, 96px);
-      font-style: italic;
-      margin-bottom: 32px; position: relative; z-index: 2;
-    }
-    #cta-final p {
-      font-size: 18px; color: var(--mid);
-      max-width: 420px; margin: 0 auto 56px; line-height: 1.7;
-      position: relative; z-index: 2;
-    }
-    .cta-btns { display: flex; gap: 14px; justify-content: center; position: relative; z-index: 2; }
+    /* Metric cards */
+    .dash-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);margin-bottom:1px}
+    .m-card{background:var(--white);padding:32px 28px}
+    .m-label{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);margin-bottom:12px}
+    .m-val{font-family:var(--font-body);font-size:38px;font-weight:700;color:var(--black);line-height:1;letter-spacing:-.04em;margin-bottom:6px}
+    .m-delta{font-size:12px;color:var(--mid)}
 
-    /* ── CONTACTO ── */
-    #contacto { background: #0A0A0A; border-top: 1px solid var(--border); }
-    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: start; }
-    .contact-form { display: flex; flex-direction: column; gap: 16px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .field { display: flex; flex-direction: column; gap: 8px; }
-    .field label {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
-      text-transform: uppercase; color: rgba(255,255,255,0.35);
-    }
-    .field input, .field select, .field textarea {
-      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-      color: var(--white); font-family: var(--font-body); font-size: 15px;
-      padding: 16px 20px; border-radius: 6px; outline: none;
-      transition: border-color 0.2s, background 0.2s; resize: none;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color: rgba(62,203,160,0.5); background: rgba(62,203,160,0.04);
-    }
-    .field select option { background: #111; }
-    .btn-submit {
-      background: var(--teal); color: #000;
-      font-family: var(--font-body); font-weight: 700; font-size: 15px;
-      letter-spacing: 0.04em; padding: 18px 36px; border: none; cursor: none;
-      border-radius: 4px; transition: background 0.2s, transform 0.15s;
-      align-self: flex-start; margin-top: 8px;
-    }
-    .btn-submit:hover { background: #fff; transform: scale(1.02); }
-    .form-success {
-      text-align: center; padding: 60px 0;
-    }
-    .form-success h3 {
-      font-family: var(--font-head); font-size: 28px; color: var(--teal);
-      margin-bottom: 12px; font-weight: 700;
-    }
-    .form-success p { color: var(--mid); }
+    /* Charts */
+    .dash-charts{display:grid;grid-template-columns:2fr 1fr;gap:1px;background:var(--border)}
+    .chart-card{background:var(--white);padding:32px 28px}
+    .chart-label{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--mid);margin-bottom:20px}
 
-    /* ── FOOTER ── */
-    footer {
-      background: var(--black); border-top: 1px solid var(--border);
-      padding: 40px 80px;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 20px;
-    }
-    .footer-copy { font-size: 13px; color: rgba(255,255,255,0.25); letter-spacing: 0.04em; }
-    .footer-links { display: flex; gap: 32px; list-style: none; }
-    .footer-links a { font-size: 13px; color: rgba(255,255,255,0.25); text-decoration: none; transition: color 0.2s; }
-    .footer-links a:hover { color: var(--teal); }
+    /* Tabla tipología */
+    .tipo-table{width:100%;border-collapse:collapse;margin-top:8px}
+    .tipo-table th{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);text-align:left;padding:8px 0;border-bottom:1px solid var(--border)}
+    .tipo-table td{font-size:13px;padding:7px 0;border-bottom:1px solid var(--border);color:var(--black)}
+    .tipo-table td:last-child{text-align:right;font-weight:600;color:var(--black)}
+    .tipo-bar{display:inline-block;height:3px;background:var(--black);border-radius:2px;opacity:.15}
 
-    /* ── REVEAL ── */
-    .reveal { opacity: 0; transform: translateY(48px); }
-    .reveal.visible {
-      opacity: 1; transform: translateY(0);
-      transition: opacity 0.9s cubic-bezier(.22,1,.36,1), transform 0.9s cubic-bezier(.22,1,.36,1);
-    }
-    .reveal.d1 { transition-delay: 0.1s; }
-    .reveal.d2 { transition-delay: 0.2s; }
-    .reveal.d3 { transition-delay: 0.3s; }
-    .reveal.d4 { transition-delay: 0.4s; }
+    /* METODOLOGÍA (nueva sección) */
+    #metodologia{background:var(--black);border-top:1px solid var(--border-dark)}
+    #metodologia .section-tag{color:rgba(255,255,255,.4)}
+    #metodologia h2{color:var(--white)}
+    #metodologia .section-intro{color:rgba(255,255,255,.4)}
+    .met-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid rgba(255,255,255,.08);margin-top:72px}
+    .met-card{padding:48px 40px;border-right:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden}
+    .met-card:last-child{border-right:none}
+    .met-num{font-size:10px;font-weight:600;letter-spacing:.2em;color:rgba(255,255,255,.2);margin-bottom:28px}
+    .met-icon{width:36px;height:36px;margin-bottom:20px}
+    .met-card h3{font-family:var(--font-body);font-size:18px;font-weight:600;color:var(--white);margin-bottom:12px;letter-spacing:-.01em}
+    .met-card p{font-size:13px;color:rgba(255,255,255,.4);line-height:1.8}
+    .met-fact{margin-top:28px;padding-top:20px;border-top:1px solid rgba(255,255,255,.06)}
+    .met-fact-num{font-family:var(--font-body);font-size:28px;font-weight:700;color:var(--white);letter-spacing:-.04em}
+    .met-fact-label{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-top:4px}
 
-    @media (max-width: 960px) {
-      nav { padding: 0 24px; }
-      .nav-links { display: none; }
-      section { padding: 80px 24px; }
-      .servicios-header, .proceso-grid, .contact-grid { grid-template-columns: 1fr; gap: 40px; }
-      .proceso-visual { position: relative; top: 0; height: 280px; }
-      .stats-bar { grid-template-columns: 1fr 1fr; }
-      .dash-grid { grid-template-columns: 1fr 1fr; }
-      .charts-row { grid-template-columns: 1fr; }
-      .sectores-grid { grid-template-columns: 1fr 1fr; }
-      .cards-grid { grid-template-columns: 1fr; }
-      footer { padding: 32px 24px; }
-      h1 { font-size: clamp(42px, 10vw, 80px); }
+    /* CLIENTES */
+    #clientes{background:var(--gray);border-top:1px solid var(--border)}
+    .cl-header{text-align:center;max-width:600px;margin:0 auto 72px}
+    .cl-header .section-intro{margin:0 auto}
+    .sectores-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--border)}
+    .sector-card{background:var(--white);padding:44px 28px;text-align:center;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .3s}
+    .sector-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--black);transform:scaleX(0);transition:transform .4s cubic-bezier(.22,1,.36,1)}
+    .sector-card:last-child{border-right:none}
+    .sector-card:hover{background:var(--white)}
+    .sector-card:hover::before{transform:scaleX(1)}
+    .sector-icon{width:40px;height:40px;margin:0 auto 20px}
+    .sector-card h3{font-family:var(--font-body);font-size:13px;font-weight:600;margin-bottom:8px;color:var(--black)}
+    .sector-card p{font-size:12px;color:var(--mid);line-height:1.6}
+
+    /* CTA */
+    #cta-final{background:var(--white);border-top:1px solid var(--border);text-align:center;padding:144px 80px;position:relative;overflow:hidden}
+    #cta-final h2{font-size:clamp(44px,5.5vw,88px);margin-bottom:28px}
+    #cta-final p{font-size:17px;color:var(--mid);max-width:380px;margin:0 auto 48px;line-height:1.8}
+    .cta-btns{display:flex;gap:12px;justify-content:center}
+
+    /* CONTACTO */
+    #contacto{background:var(--gray);border-top:1px solid var(--border)}
+    .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:96px;align-items:start}
+    .contact-info{padding-top:8px}
+    .info-detail{display:flex;align-items:center;gap:10px;margin-top:16px}
+    .info-dot{width:4px;height:4px;background:var(--mid);border-radius:50%;flex-shrink:0}
+    .contact-form{display:flex;flex-direction:column;gap:14px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field{display:flex;flex-direction:column;gap:7px}
+    .field label{font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--mid)}
+    .field input,.field select,.field textarea{background:var(--white);border:1px solid var(--border);color:var(--black);font-family:var(--font-body);font-size:14px;padding:14px 18px;border-radius:3px;outline:none;transition:border-color .2s;resize:none}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--black)}
+    .field select option{background:var(--white)}
+    .btn-submit{background:var(--black);color:var(--white);font-family:var(--font-body);font-weight:600;font-size:14px;letter-spacing:.04em;padding:16px 32px;border:none;cursor:none;border-radius:3px;transition:opacity .2s,transform .15s;align-self:flex-start;margin-top:6px}
+    .btn-submit:hover{opacity:.8;transform:scale(1.01)}
+    .form-success{text-align:center;padding:56px 0}
+    .form-success h3{font-family:var(--font-head);font-size:26px;font-style:italic;color:var(--black);margin-bottom:10px}
+    .form-success p{color:var(--mid);font-size:14px}
+
+    /* FOOTER */
+    footer{background:var(--black);padding:36px 80px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .footer-copy{font-size:12px;color:rgba(255,255,255,.25);letter-spacing:.04em}
+    .footer-links{display:flex;gap:28px;list-style:none}
+    .footer-links a{font-size:12px;color:rgba(255,255,255,.25);text-decoration:none;transition:color .2s}
+    .footer-links a:hover{color:var(--white)}
+
+    /* REVEAL */
+    .reveal{opacity:0;transform:translateY(40px)}
+    .reveal.visible{opacity:1;transform:translateY(0);transition:opacity .9s cubic-bezier(.22,1,.36,1),transform .9s cubic-bezier(.22,1,.36,1)}
+    .reveal.d1{transition-delay:.1s}.reveal.d2{transition-delay:.2s}.reveal.d3{transition-delay:.3s}.reveal.d4{transition-delay:.4s}
+
+    @media(max-width:960px){
+      nav{padding:0 24px}
+      .nav-links{display:none}
+      section{padding:80px 24px}
+      .svc-header,.proc-grid,.contact-grid{grid-template-columns:1fr;gap:40px}
+      .proc-visual{position:relative;top:0;height:260px}
+      .stats-bar{grid-template-columns:1fr 1fr}
+      .dash-metrics{grid-template-columns:1fr 1fr}
+      .dash-charts{grid-template-columns:1fr}
+      .sectores-grid{grid-template-columns:1fr 1fr}
+      .met-grid{grid-template-columns:1fr}
+      .met-card{border-right:none;border-bottom:1px solid rgba(255,255,255,.08)}
+      .cards-grid{grid-template-columns:1fr}
+      .card:nth-child(even){border-right:1px solid var(--border)}
+      footer{padding:28px 24px}
     }
   </style>
 </head>
@@ -517,47 +264,45 @@
 <!-- NAV -->
 <nav id="main-nav">
   <div class="nav-logo">
-    <div class="nav-logo-mark">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="3" cy="8" r="2" fill="#3ECBA0"/>
-        <circle cx="8" cy="3" r="2" fill="#3ECBA0" opacity=".6"/>
-        <circle cx="8" cy="13" r="2" fill="#3ECBA0" opacity=".6"/>
-        <circle cx="13" cy="8" r="2" fill="#3ECBA0"/>
-        <line x1="5" y1="8" x2="6" y2="5" stroke="#3ECBA0" stroke-width="1" opacity=".4"/>
-        <line x1="5" y1="8" x2="6" y2="11" stroke="#3ECBA0" stroke-width="1" opacity=".4"/>
-        <line x1="10" y1="5" x2="11" y2="8" stroke="#3ECBA0" stroke-width="1" opacity=".4"/>
-        <line x1="10" y1="11" x2="11" y2="8" stroke="#3ECBA0" stroke-width="1" opacity=".4"/>
+    <div class="nav-mark">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="2.5" cy="7" r="1.8" fill="#0A0A0A"/>
+        <circle cx="7" cy="2.5" r="1.8" fill="#0A0A0A" opacity=".5"/>
+        <circle cx="7" cy="11.5" r="1.8" fill="#0A0A0A" opacity=".5"/>
+        <circle cx="11.5" cy="7" r="1.8" fill="#0A0A0A"/>
+        <line x1="4.2" y1="7" x2="5.3" y2="4.3" stroke="#0A0A0A" stroke-width=".9" opacity=".3"/>
+        <line x1="4.2" y1="7" x2="5.3" y2="9.7" stroke="#0A0A0A" stroke-width=".9" opacity=".3"/>
+        <line x1="8.7" y1="4.3" x2="9.8" y2="7" stroke="#0A0A0A" stroke-width=".9" opacity=".3"/>
+        <line x1="8.7" y1="9.7" x2="9.8" y2="7" stroke="#0A0A0A" stroke-width=".9" opacity=".3"/>
       </svg>
     </div>
-    <span class="nav-logo-text">RDH</span>
+    <span class="nav-name">RDH</span>
   </div>
   <ul class="nav-links">
     <li><a href="#servicios">Servicios</a></li>
     <li><a href="#proceso">Tecnología</a></li>
-    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#dashboard">Datos</a></li>
     <li><a href="#clientes">Sectores</a></li>
   </ul>
-  <button class="nav-cta" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">
-    Contactar →
-  </button>
+  <button class="nav-cta" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Contactar →</button>
 </nav>
 
 <!-- HERO -->
 <section id="hero">
   <canvas id="hero-canvas"></canvas>
   <div class="hero-content">
-    <div class="hero-tag">
-      <span class="tag-dot"></span>
-      Inteligencia Artificial · Movilidad Urbana · Chile
+    <div class="hero-eyebrow">
+      <span class="eyebrow-sep"></span>
+      Medición vehicular con IA
+      <span class="eyebrow-sep"></span>
     </div>
     <h1>
       <span class="line"><span class="word">Datos que</span></span>
-      <span class="line"><span class="word"><em>mueven</em></span></span>
-      <span class="line"><span class="word">ciudades</span></span>
+      <span class="line"><span class="word"><em>mueven</em> ciudades</span></span>
     </h1>
-    <p class="hero-sub">RDH convierte cámaras en métricas precisas de flujo vehicular y peatonal mediante IA de última generación.</p>
+    <p class="hero-sub">RDH convierte cámaras en métricas precisas de flujo vehicular y peatonal mediante inteligencia artificial.</p>
     <div class="hero-btns">
-      <a href="#dashboard" class="btn-primary">Ver Dashboard en vivo →</a>
+      <a href="#dashboard" class="btn-primary">Ver datos vehiculares →</a>
       <a href="#proceso" class="btn-ghost">Cómo funciona</a>
     </div>
   </div>
@@ -569,7 +314,7 @@
 
 <!-- MARQUEE -->
 <div class="marquee-wrap">
-  <div class="marquee-track" id="marquee-track"></div>
+  <div class="marquee-track" id="mq-track"></div>
 </div>
 
 <!-- STATS -->
@@ -584,7 +329,7 @@
   </div>
   <div class="stat-item reveal d2">
     <div class="stat-num" id="c3">—</div>
-    <div class="stat-label">Puntos de medición activos</div>
+    <div class="stat-label">Puntos de control activos</div>
   </div>
   <div class="stat-item reveal d3">
     <div class="stat-num" id="c4">—</div>
@@ -594,7 +339,7 @@
 
 <!-- SERVICIOS -->
 <section id="servicios">
-  <div class="servicios-header">
+  <div class="svc-header">
     <div class="reveal">
       <div class="section-tag">Servicios</div>
       <h2>Lo que RDH hace por su organización</h2>
@@ -604,127 +349,138 @@
   <div class="cards-grid">
     <div class="card reveal">
       <div class="card-num">01</div>
-      <svg class="card-icon" viewBox="0 0 48 48" fill="none">
-        <rect x="6" y="18" width="36" height="12" rx="4" stroke="#3ECBA0" stroke-width="1.5"/>
-        <circle cx="14" cy="30" r="4" stroke="#3ECBA0" stroke-width="1.5"/>
-        <circle cx="34" cy="30" r="4" stroke="#3ECBA0" stroke-width="1.5"/>
-        <path d="M8 18l4-6h24l4 6" stroke="#3ECBA0" stroke-width="1.5"/>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none">
+        <rect x="4" y="14" width="32" height="12" rx="3" stroke="#0A0A0A" stroke-width="1.2"/>
+        <circle cx="11" cy="26" r="3.5" stroke="#0A0A0A" stroke-width="1.2"/>
+        <circle cx="29" cy="26" r="3.5" stroke="#0A0A0A" stroke-width="1.2"/>
+        <path d="M6 14l3-5h22l3 5" stroke="#0A0A0A" stroke-width="1.2"/>
       </svg>
       <h3>Conteo Vehicular</h3>
-      <p>Detección y clasificación automática: autos, camiones, buses, motos. Datos por carril, dirección y período.</p>
+      <p>Detección y clasificación automática por tipología: vehículo liviano, buses, camiones, motos y más. Datos por carril y dirección.</p>
     </div>
     <div class="card reveal d1">
       <div class="card-num">02</div>
-      <svg class="card-icon" viewBox="0 0 48 48" fill="none">
-        <circle cx="24" cy="10" r="5" stroke="#3ECBA0" stroke-width="1.5"/>
-        <path d="M24 15 L24 30 M16 20 L32 20 M20 30 L24 30 L28 30 M20 30 L18 40 M28 30 L30 40" stroke="#3ECBA0" stroke-width="1.5" stroke-linecap="round"/>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="9" r="4" stroke="#0A0A0A" stroke-width="1.2"/>
+        <path d="M20 13v12M13 17h14M16 25l20 25M24 25l-20 25" stroke="#0A0A0A" stroke-width="1.2" stroke-linecap="round"/>
       </svg>
       <h3>Conteo Peatonal</h3>
-      <p>Seguimiento de flujo peatonal en pasos cebra, accesos y espacios públicos con alta precisión y privacidad.</p>
+      <p>Seguimiento de flujo peatonal en pasos cebra, accesos y espacios públicos con alta precisión y respeto a la privacidad.</p>
     </div>
     <div class="card reveal d2">
       <div class="card-num">03</div>
-      <svg class="card-icon" viewBox="0 0 48 48" fill="none">
-        <rect x="8" y="8" width="32" height="32" rx="4" stroke="#3ECBA0" stroke-width="1.5"/>
-        <circle cx="24" cy="24" r="8" stroke="#3ECBA0" stroke-width="1.5"/>
-        <circle cx="24" cy="24" r="3" fill="#3ECBA0" opacity=".6"/>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none">
+        <rect x="6" y="6" width="28" height="28" rx="4" stroke="#0A0A0A" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="7" stroke="#0A0A0A" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="2.5" fill="#0A0A0A" opacity=".5"/>
       </svg>
       <h3>Análisis con IA</h3>
-      <p>Modelos de visión computacional entrenados para detectar patrones de movilidad, congestión y comportamiento.</p>
+      <p>Visión computacional entrenada para detectar patrones de movilidad, congestión y comportamiento vehicular en tiempo real.</p>
     </div>
     <div class="card reveal d3">
       <div class="card-num">04</div>
-      <svg class="card-icon" viewBox="0 0 48 48" fill="none">
-        <rect x="16" y="8" width="24" height="32" rx="3" stroke="#3ECBA0" stroke-width="1.5"/>
-        <line x1="22" y1="16" x2="34" y2="16" stroke="#3ECBA0" stroke-width="1.5"/>
-        <line x1="22" y1="22" x2="32" y2="22" stroke="#3ECBA0" stroke-width="1" opacity=".5"/>
-        <path d="M22 30 L26 25 L30 28 L34 22" stroke="#3ECBA0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg class="card-icon" viewBox="0 0 40 40" fill="none">
+        <rect x="12" y="5" width="20" height="28" rx="3" stroke="#0A0A0A" stroke-width="1.2"/>
+        <line x1="17" y1="12" x2="27" y2="12" stroke="#0A0A0A" stroke-width="1.2"/>
+        <line x1="17" y1="17" x2="24" y2="17" stroke="#0A0A0A" stroke-width="1" opacity=".4"/>
+        <path d="M17 24l4-5 4 3 4-4" stroke="#0A0A0A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <h3>Reportes Automatizados</h3>
-      <p>Informes periódicos en PDF/Excel con métricas de demanda, origen-destino y proyecciones para organismos.</p>
+      <p>Informes periódicos en PDF/Excel con métricas de demanda, flujos origen-destino y proyecciones para planificación vial.</p>
     </div>
   </div>
 </section>
 
 <!-- PROCESO -->
 <section id="proceso">
-  <div class="proceso-inner">
+  <div class="proc-inner">
     <div class="reveal">
       <div class="section-tag">Tecnología</div>
       <h2>El proceso detrás de cada dato</h2>
     </div>
-    <div class="proceso-grid">
-      <div class="proceso-steps" id="proc-steps">
+    <div class="proc-grid">
+      <div class="proc-steps reveal d1" id="proc-steps">
         <div class="step active" data-step="0">
-          <div class="step-bar"></div>
-          <div class="step-header">
-            <span class="step-number">01</span>
-            <span class="step-title">Captura con cámara o sensor</span>
+          <div class="step-row">
+            <div class="step-left">
+              <span class="step-num">01</span>
+              <span class="step-title">Captura con cámara</span>
+            </div>
+            <span class="step-plus">+</span>
           </div>
-          <div class="step-body">Video en tiempo real desde dispositivos fijos o móviles. Compatible con cámaras IP existentes, sin hardware propietario.</div>
+          <div class="step-body">Video en tiempo real desde dispositivos fijos o móviles. Compatible con cámaras IP existentes sin hardware propietario adicional.</div>
         </div>
         <div class="step" data-step="1">
-          <div class="step-bar"></div>
-          <div class="step-header">
-            <span class="step-number">02</span>
-            <span class="step-title">Modelo de IA procesa</span>
+          <div class="step-row">
+            <div class="step-left">
+              <span class="step-num">02</span>
+              <span class="step-title">Modelo IA clasifica</span>
+            </div>
+            <span class="step-plus">+</span>
           </div>
-          <div class="step-body">Visión computacional + clasificación en tiempo real. Detecta tipo de vehículo, dirección, velocidad y ocupación de carril.</div>
+          <div class="step-body">Visión computacional detecta tipo de vehículo, dirección, velocidad y ocupación de carril en cada fotograma.</div>
         </div>
         <div class="step" data-step="2">
-          <div class="step-bar"></div>
-          <div class="step-header">
-            <span class="step-number">03</span>
-            <span class="step-title">Datos disponibles al instante</span>
+          <div class="step-row">
+            <div class="step-left">
+              <span class="step-num">03</span>
+              <span class="step-title">Datos en tiempo real</span>
+            </div>
+            <span class="step-plus">+</span>
           </div>
-          <div class="step-body">Las métricas se actualizan cada segundo en el dashboard. Alertas automáticas ante congestión o incidentes detectados.</div>
+          <div class="step-body">Métricas actualizadas cada 15 minutos por punto de control. Alertas automáticas ante congestión o anomalías de tráfico detectadas.</div>
         </div>
         <div class="step" data-step="3">
-          <div class="step-bar"></div>
-          <div class="step-header">
-            <span class="step-number">04</span>
-            <span class="step-title">Reporte automático generado</span>
+          <div class="step-row">
+            <div class="step-left">
+              <span class="step-num">04</span>
+              <span class="step-title">Reporte automático</span>
+            </div>
+            <span class="step-plus">+</span>
           </div>
-          <div class="step-body">PDF o Excel con análisis de tendencias, comparativas por período y recomendaciones para planificación vial.</div>
+          <div class="step-body">PDF o Excel con análisis de tendencias, comparativas por período, tipología vehicular y recomendaciones para planificación vial.</div>
         </div>
       </div>
-      <div class="proceso-visual" id="proc-visual">
+      <div class="proc-visual reveal d2" id="proc-visual">
         <div class="vis-panel active" id="vp0">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <rect x="10" y="22" width="52" height="28" rx="6" stroke="#3ECBA0" stroke-width="1.5"/>
-            <circle cx="36" cy="36" r="9" stroke="#3ECBA0" stroke-width="1.5"/>
-            <circle cx="36" cy="36" r="4" fill="#3ECBA0" opacity=".6"/>
-            <path d="M10 36h18M46 36h16" stroke="#3ECBA0" stroke-width="1" opacity=".4"/>
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect x="8" y="16" width="40" height="24" rx="5" stroke="#0A0A0A" stroke-width="1.5"/>
+            <circle cx="28" cy="28" r="7" stroke="#0A0A0A" stroke-width="1.5"/>
+            <circle cx="28" cy="28" r="3" fill="#0A0A0A" opacity=".4"/>
           </svg>
           <div class="vis-title">Cámara / Sensor</div>
-          <div class="vis-sub">Captura de video en tiempo real</div>
+          <div class="vis-sub">Captura de video en tiempo real desde infraestructura existente</div>
+          <span class="vis-step-num">01</span>
         </div>
         <div class="vis-panel" id="vp1">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <rect x="10" y="10" width="52" height="52" rx="6" stroke="#3ECBA0" stroke-width="1.5"/>
-            <path d="M18 36h10l8-14 10 28 8-14 8 0" stroke="#3ECBA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect x="8" y="8" width="40" height="40" rx="5" stroke="#0A0A0A" stroke-width="1.5"/>
+            <path d="M14 28h8l6-10 8 20 6-10h6" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <div class="vis-title">Modelo de IA</div>
-          <div class="vis-sub">Visión computacional + clasificación</div>
+          <div class="vis-sub">Visión computacional + clasificación por tipología vehicular</div>
+          <span class="vis-step-num">02</span>
         </div>
         <div class="vis-panel" id="vp2">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <polyline points="10,56 22,38 33,46 46,22 58,32" stroke="#3ECBA0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="58" cy="32" r="5" fill="#3ECBA0"/>
-            <line x1="10" y1="62" x2="62" y2="62" stroke="#3ECBA0" stroke-width="1" opacity=".3"/>
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <polyline points="8,44 18,30 26,36 36,18 46,24" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="46" cy="24" r="4" fill="#0A0A0A" opacity=".5"/>
+            <line x1="8" y1="48" x2="48" y2="48" stroke="#0A0A0A" stroke-width="1" opacity=".2"/>
           </svg>
           <div class="vis-title">Datos en tiempo real</div>
-          <div class="vis-sub">Métricas actualizadas cada segundo</div>
+          <div class="vis-sub">Métricas por punto de control, actualizadas cada 15 minutos</div>
+          <span class="vis-step-num">03</span>
         </div>
         <div class="vis-panel" id="vp3">
-          <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-            <rect x="16" y="8" width="40" height="56" rx="5" stroke="#3ECBA0" stroke-width="1.5"/>
-            <line x1="24" y1="22" x2="48" y2="22" stroke="#3ECBA0" stroke-width="2"/>
-            <line x1="24" y1="31" x2="44" y2="31" stroke="#3ECBA0" stroke-width="1.5" opacity=".5"/>
-            <path d="M24 48 L30 40 L36 44 L42 36 L48 40" stroke="#3ECBA0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect x="14" y="6" width="28" height="44" rx="4" stroke="#0A0A0A" stroke-width="1.5"/>
+            <line x1="20" y1="16" x2="36" y2="16" stroke="#0A0A0A" stroke-width="1.5"/>
+            <line x1="20" y1="23" x2="32" y2="23" stroke="#0A0A0A" stroke-width="1" opacity=".4"/>
+            <path d="M20 36l4-6 5 4 5-6 4 3" stroke="#0A0A0A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <div class="vis-title">Reporte automático</div>
-          <div class="vis-sub">PDF/Excel con análisis de tendencias</div>
+          <div class="vis-sub">PDF/Excel con análisis de tendencias y proyecciones viales</div>
+          <span class="vis-step-num">04</span>
         </div>
       </div>
     </div>
@@ -733,107 +489,166 @@
 
 <!-- DASHBOARD -->
 <section id="dashboard">
-  <div class="dash-header reveal">
+  <div class="dash-top reveal">
     <div>
-      <div class="section-tag">Datos en vivo</div>
-      <h2>Dashboard de métricas vehiculares</h2>
+      <div class="section-tag">Datos vehiculares</div>
+      <h2>Mediciones por punto de control</h2>
     </div>
-    <span class="live-badge"><span class="pulse"></span> Simulación en tiempo real</span>
-  </div>
-  <div class="dash-grid">
-    <div class="metric-card reveal">
-      <div class="metric-label">Vehículos / hora</div>
-      <div class="metric-val" id="m1">1,243</div>
-      <div class="metric-delta">+3.2% vs ayer</div>
-    </div>
-    <div class="metric-card reveal d1">
-      <div class="metric-label">Flujo peatonal</div>
-      <div class="metric-val" id="m2">387</div>
-      <div class="metric-delta">+1.8% vs ayer</div>
-    </div>
-    <div class="metric-card reveal d2">
-      <div class="metric-label">Velocidad media km/h</div>
-      <div class="metric-val" id="m3">42</div>
-      <div class="metric-delta">↓ 2 km/h</div>
-    </div>
-    <div class="metric-card reveal d3">
-      <div class="metric-label">Índice de congestión</div>
-      <div class="metric-val" id="m4">18%</div>
-      <div class="metric-delta" id="m4d">✓ Normal</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+      <span class="live-badge"><span class="pulse"></span>Simulación · Tramos de 15 min</span>
+      <div class="pc-tabs" id="pc-tabs">
+        <button class="pc-tab active" data-pc="0">PC-01 · Av. Vicuña Mackenna</button>
+        <button class="pc-tab" data-pc="1">PC-02 · Av. Grecia</button>
+        <button class="pc-tab" data-pc="2">PC-03 · Av. Irarrázaval</button>
+      </div>
     </div>
   </div>
-  <div class="charts-row">
-    <div class="chart-card reveal">
-      <div class="chart-title">Flujo vehicular por hora</div>
-      <canvas id="lineChart" height="160"></canvas>
+  <div class="interval-row reveal">
+    <span class="interval-label">Período</span>
+    <button class="iv-btn active" data-iv="mañana">Mañana 07:00–09:00</button>
+    <button class="iv-btn" data-iv="mediodia">Mediodía 12:00–14:00</button>
+    <button class="iv-btn" data-iv="tarde">Tarde 17:00–19:00</button>
+  </div>
+  <div class="dash-metrics reveal">
+    <div class="m-card">
+      <div class="m-label">Total vehículos</div>
+      <div class="m-val" id="mt">—</div>
+      <div class="m-delta" id="mt-d">período seleccionado</div>
     </div>
-    <div class="chart-card reveal d1">
-      <div class="chart-title">Categorías</div>
-      <canvas id="barChart" height="160"></canvas>
-      <div class="vtypes" id="vtypes"></div>
+    <div class="m-card">
+      <div class="m-label">V. Livianos</div>
+      <div class="m-val" id="ml">—</div>
+      <div class="m-delta">% del flujo</div>
     </div>
-    <div class="chart-card reveal d2">
-      <div class="chart-title">Dirección de flujo</div>
-      <canvas id="pieChart" height="160"></canvas>
+    <div class="m-card">
+      <div class="m-label">Buses / Taxi Bus</div>
+      <div class="m-val" id="mb">—</div>
+      <div class="m-delta">% del flujo</div>
+    </div>
+    <div class="m-card">
+      <div class="m-label">Camiones</div>
+      <div class="m-val" id="mc">—</div>
+      <div class="m-delta">% del flujo</div>
+    </div>
+  </div>
+  <div class="dash-charts reveal">
+    <div class="chart-card">
+      <div class="chart-label" id="chart-period-label">Flujo vehicular — tramos de 15 min</div>
+      <canvas id="lineChart" height="180"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-label">Tipología vehicular</div>
+      <table class="tipo-table" id="tipo-table">
+        <thead><tr><th>Tipo</th><th>Cant.</th></tr></thead>
+        <tbody id="tipo-body"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- METODOLOGÍA (nueva sección) -->
+<section id="metodologia">
+  <div class="reveal" style="max-width:600px">
+    <div class="section-tag">Metodología</div>
+    <h2>Norma técnica que respalda cada medición</h2>
+    <p class="section-intro">Nuestros estudios siguen los estándares del Manual de Vialidad Urbana (MINVU) y la metodología DICTUC para estudios de impacto vial en Chile.</p>
+  </div>
+  <div class="met-grid reveal">
+    <div class="met-card">
+      <div class="met-num">01</div>
+      <svg class="met-icon" viewBox="0 0 36 36" fill="none">
+        <rect x="4" y="4" width="28" height="28" rx="4" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+        <path d="M10 18h6l4-8 4 14 4-6h4" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>Conteo en períodos peak</h3>
+      <p>Mediciones en períodos de máxima demanda: mañana (07:00–09:00), mediodía (12:00–14:00) y tarde (17:00–19:00), en intervalos de 15 minutos.</p>
+      <div class="met-fact">
+        <div class="met-fact-num">15 min</div>
+        <div class="met-fact-label">Intervalo de registro</div>
+      </div>
+    </div>
+    <div class="met-card">
+      <div class="met-num">02</div>
+      <svg class="met-icon" viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="12" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+        <path d="M18 8v10l6 4" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <h3>12 tipologías vehiculares</h3>
+      <p>Clasificación detallada: vehículo liviano, taxi col., taxi bus público/privado, buses, bus articulado, camiones 2 ejes, camiones +2 ejes, bus interurbano, bicicleta, motos y transporte escolar.</p>
+      <div class="met-fact">
+        <div class="met-fact-num">12</div>
+        <div class="met-fact-label">Tipos de vehículo</div>
+      </div>
+    </div>
+    <div class="met-card">
+      <div class="met-num">03</div>
+      <svg class="met-icon" viewBox="0 0 36 36" fill="none">
+        <path d="M6 28L18 8l12 20H6z" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/>
+        <line x1="18" y1="16" x2="18" y2="22" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="18" cy="24" r="1" fill="rgba(255,255,255,.5)"/>
+      </svg>
+      <h3>Validación y calibración</h3>
+      <p>Cada sesión de medición incluye revisión de calidad, comparación con aforos manuales de validación y corrección de errores de detección por condiciones de luz o clima.</p>
+      <div class="met-fact">
+        <div class="met-fact-num">97%</div>
+        <div class="met-fact-label">Precisión validada</div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- CLIENTES -->
 <section id="clientes">
-  <div class="clientes-header reveal">
+  <div class="cl-header reveal">
     <div class="section-tag">Sectores</div>
     <h2>¿Quiénes trabajan con RDH?</h2>
     <p class="section-intro">Organizaciones públicas y privadas que necesitan datos de movilidad confiables y accionables.</p>
   </div>
   <div class="sectores-grid">
     <div class="sector-card reveal">
-      <svg class="sector-icon" viewBox="0 0 56 56" fill="none">
-        <rect x="6" y="18" width="44" height="20" rx="4" stroke="#3ECBA0" stroke-width="1.5"/>
-        <rect x="10" y="22" width="10" height="8" rx="1" stroke="#3ECBA0" stroke-width="1" opacity=".6"/>
-        <rect x="23" y="22" width="10" height="8" rx="1" stroke="#3ECBA0" stroke-width="1" opacity=".6"/>
-        <rect x="36" y="22" width="10" height="8" rx="1" stroke="#3ECBA0" stroke-width="1" opacity=".6"/>
-        <circle cx="16" cy="40" r="4" stroke="#3ECBA0" stroke-width="1.5"/>
-        <circle cx="40" cy="40" r="4" stroke="#3ECBA0" stroke-width="1.5"/>
+      <svg class="sector-icon" viewBox="0 0 40 40" fill="none">
+        <rect x="4" y="14" width="32" height="16" rx="3" stroke="#0A0A0A" stroke-width="1.2"/>
+        <rect x="6" y="17" width="7" height="6" rx="1" stroke="#0A0A0A" stroke-width="1" opacity=".5"/>
+        <rect x="16" y="17" width="7" height="6" rx="1" stroke="#0A0A0A" stroke-width="1" opacity=".5"/>
+        <circle cx="10" cy="32" r="3" stroke="#0A0A0A" stroke-width="1.2"/>
+        <circle cx="30" cy="32" r="3" stroke="#0A0A0A" stroke-width="1.2"/>
       </svg>
       <h3>Empresas de Transporte</h3>
       <p>Optimización de rutas y frecuencias con datos reales.</p>
     </div>
     <div class="sector-card reveal d1">
-      <svg class="sector-icon" viewBox="0 0 56 56" fill="none">
-        <rect x="16" y="10" width="24" height="36" stroke="#3ECBA0" stroke-width="1.5"/>
-        <path d="M10 46h36" stroke="#3ECBA0" stroke-width="1.5" stroke-linecap="round"/>
-        <rect x="22" y="32" width="12" height="14" stroke="#3ECBA0" stroke-width="1" opacity=".7"/>
-        <rect x="20" y="18" width="6" height="6" stroke="#3ECBA0" stroke-width="1" opacity=".5"/>
-        <rect x="30" y="18" width="6" height="6" stroke="#3ECBA0" stroke-width="1" opacity=".5"/>
+      <svg class="sector-icon" viewBox="0 0 40 40" fill="none">
+        <rect x="12" y="8" width="16" height="24" stroke="#0A0A0A" stroke-width="1.2"/>
+        <path d="M6 32h28" stroke="#0A0A0A" stroke-width="1.2" stroke-linecap="round"/>
+        <rect x="16" y="22" width="8" height="10" stroke="#0A0A0A" stroke-width="1" opacity=".5"/>
+        <rect x="14" y="14" width="4" height="4" stroke="#0A0A0A" stroke-width="1" opacity=".4"/>
+        <rect x="22" y="14" width="4" height="4" stroke="#0A0A0A" stroke-width="1" opacity=".4"/>
       </svg>
       <h3>Municipios</h3>
       <p>Gestión de tráfico, planificación vial y movilidad sostenible.</p>
     </div>
     <div class="sector-card reveal d2">
-      <svg class="sector-icon" viewBox="0 0 56 56" fill="none">
-        <path d="M8 44 L28 12 L48 44 Z" stroke="#3ECBA0" stroke-width="1.5"/>
-        <line x1="8" y1="44" x2="48" y2="44" stroke="#3ECBA0" stroke-width="1.5"/>
-        <rect x="23" y="30" width="10" height="14" stroke="#3ECBA0" stroke-width="1" opacity=".7"/>
+      <svg class="sector-icon" viewBox="0 0 40 40" fill="none">
+        <path d="M4 32L20 8l16 24H4z" stroke="#0A0A0A" stroke-width="1.2"/>
+        <rect x="16" y="22" width="8" height="10" stroke="#0A0A0A" stroke-width="1" opacity=".5"/>
       </svg>
       <h3>Constructoras</h3>
       <p>Estudios de impacto vial para proyectos habitacionales.</p>
     </div>
     <div class="sector-card reveal d3">
-      <svg class="sector-icon" viewBox="0 0 56 56" fill="none">
-        <rect x="6" y="20" width="20" height="26" stroke="#3ECBA0" stroke-width="1.5"/>
-        <rect x="30" y="10" width="20" height="36" stroke="#3ECBA0" stroke-width="1.5"/>
-        <line x1="6" y1="46" x2="50" y2="46" stroke="#3ECBA0" stroke-width="1.5"/>
-        <rect x="22" y="36" width="8" height="10" stroke="#3ECBA0" stroke-width="1" opacity=".6"/>
+      <svg class="sector-icon" viewBox="0 0 40 40" fill="none">
+        <rect x="4" y="16" width="14" height="16" stroke="#0A0A0A" stroke-width="1.2"/>
+        <rect x="22" y="8" width="14" height="24" stroke="#0A0A0A" stroke-width="1.2"/>
+        <line x1="4" y1="32" x2="36" y2="32" stroke="#0A0A0A" stroke-width="1.2"/>
       </svg>
       <h3>Inmobiliarias</h3>
       <p>Análisis de accesibilidad y flujos peatonales para proyectos.</p>
     </div>
     <div class="sector-card reveal d4">
-      <svg class="sector-icon" viewBox="0 0 56 56" fill="none">
-        <path d="M8 22 L28 8 L48 22 L48 46 L8 46 Z" stroke="#3ECBA0" stroke-width="1.5"/>
-        <rect x="18" y="30" width="8" height="16" stroke="#3ECBA0" stroke-width="1" opacity=".6"/>
-        <rect x="30" y="30" width="8" height="16" stroke="#3ECBA0" stroke-width="1" opacity=".6"/>
+      <svg class="sector-icon" viewBox="0 0 40 40" fill="none">
+        <path d="M4 16L20 6l16 10v18H4z" stroke="#0A0A0A" stroke-width="1.2"/>
+        <rect x="12" y="22" width="6" height="12" stroke="#0A0A0A" stroke-width="1" opacity=".5"/>
+        <rect x="22" y="22" width="6" height="12" stroke="#0A0A0A" stroke-width="1" opacity=".5"/>
       </svg>
       <h3>Organismos Públicos</h3>
       <p>Datos para estudios, licitaciones y planificación urbana.</p>
@@ -841,15 +656,14 @@
   </div>
 </section>
 
-<!-- CTA FINAL -->
+<!-- CTA -->
 <section id="cta-final">
-  <div class="cta-bg-glow"></div>
   <div class="section-tag reveal">Empecemos</div>
-  <h2 class="reveal">Empieza a medir<br/><em style="color:var(--teal)">hoy.</em></h2>
-  <p class="reveal">Cuéntenos su proyecto y le mostramos cómo RDH puede entregar datos precisos de movilidad para su organización.</p>
+  <h2 class="reveal">Empieza a medir <em>hoy.</em></h2>
+  <p class="reveal">Cuéntenos su proyecto y le mostramos cómo RDH puede entregar datos precisos de movilidad.</p>
   <div class="cta-btns reveal">
     <a href="#contacto" class="btn-primary">Solicitar demo →</a>
-    <a href="#dashboard" class="btn-ghost">Ver dashboard</a>
+    <a href="#metodologia" class="btn-ghost">Ver metodología</a>
   </div>
 </section>
 
@@ -859,35 +673,23 @@
     <div class="reveal">
       <div class="section-tag">Contacto</div>
       <h2>Hablemos de su proyecto</h2>
-      <p style="color:var(--mid);font-size:17px;line-height:1.75;margin-top:20px;max-width:380px">Cuéntenos su necesidad y le mostraremos cómo RDH puede entregar datos precisos de movilidad para su organización.</p>
-      <div style="margin-top:48px;display:flex;flex-direction:column;gap:20px">
-        <div style="font-size:13px;color:rgba(255,255,255,0.25);letter-spacing:.08em;text-transform:uppercase">Respuesta en menos de 24h hábiles</div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="pulse" style="flex-shrink:0"></span>
-          <span style="font-size:15px;color:var(--mid)">contacto@rdh.cl</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="pulse" style="flex-shrink:0"></span>
-          <span style="font-size:15px;color:var(--mid)">Santiago, Chile</span>
-        </div>
+      <p class="section-intro">Cuéntenos su necesidad. Le respondemos en menos de 24 horas hábiles.</p>
+      <div class="contact-info" style="margin-top:40px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--mid)">Información de contacto</div>
+        <div class="info-detail"><span class="info-dot"></span><span style="font-size:14px;color:var(--mid)">contacto@rdh.cl</span></div>
+        <div class="info-detail"><span class="info-dot"></span><span style="font-size:14px;color:var(--mid)">Santiago, Chile</span></div>
+        <div class="info-detail"><span class="info-dot"></span><span style="font-size:14px;color:var(--mid)">Respuesta en &lt;24 horas hábiles</span></div>
       </div>
     </div>
-    <div id="contact-wrap" class="reveal d1">
-      <div class="contact-form" id="contact-form">
+    <div id="form-wrap" class="reveal d1">
+      <div class="contact-form">
         <div class="form-row">
-          <div class="field">
-            <label>Nombre</label>
-            <input type="text" id="f-nombre" placeholder="Juan Pérez"/>
-          </div>
-          <div class="field">
-            <label>Empresa</label>
-            <input type="text" id="f-empresa" placeholder="Municipalidad de Santiago"/>
-          </div>
+          <div class="field"><label>Nombre</label><input type="text" id="fn" placeholder="Juan Pérez"/></div>
+          <div class="field"><label>Empresa</label><input type="text" id="fe" placeholder="Municipalidad de Santiago"/></div>
         </div>
         <div class="form-row">
-          <div class="field">
-            <label>Sector</label>
-            <select id="f-sector">
+          <div class="field"><label>Sector</label>
+            <select id="fs">
               <option value="">Seleccionar...</option>
               <option>Empresa de Transporte</option>
               <option>Municipio</option>
@@ -897,16 +699,10 @@
               <option>Otro</option>
             </select>
           </div>
-          <div class="field">
-            <label>Correo electrónico</label>
-            <input type="email" id="f-email" placeholder="juan@empresa.cl"/>
-          </div>
+          <div class="field"><label>Correo electrónico</label><input type="email" id="fm" placeholder="juan@empresa.cl"/></div>
         </div>
-        <div class="field">
-          <label>Mensaje</label>
-          <textarea rows="4" id="f-msg" placeholder="Cuéntenos sobre su proyecto..."></textarea>
-        </div>
-        <button class="btn-submit" onclick="handleSubmit()">Enviar mensaje →</button>
+        <div class="field"><label>Mensaje</label><textarea rows="4" id="fmsg" placeholder="Cuéntenos sobre su proyecto de medición..."></textarea></div>
+        <button class="btn-submit" onclick="submitForm()">Enviar mensaje →</button>
       </div>
     </div>
   </div>
@@ -922,229 +718,224 @@
 </footer>
 
 <script>
-/* ── LENIS SMOOTH SCROLL ── */
-const lenis = new Lenis({ lerp: 0.08, smoothWheel: true });
-function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
-requestAnimationFrame(raf);
+/* LENIS */
+const lenis=new Lenis({lerp:.08,smoothWheel:true});
+(function r(t){lenis.raf(t);requestAnimationFrame(r)})(0);
 
-/* ── CURSOR ── */
-const cursorDot = document.getElementById('cursor-dot');
-const cursorRing = document.getElementById('cursor-ring');
-let mx = 0, my = 0, rx = 0, ry = 0;
-window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-(function animCursor(){
-  rx += (mx - rx) * 0.15;
-  ry += (my - ry) * 0.15;
-  cursorDot.style.left = mx + 'px'; cursorDot.style.top = my + 'px';
-  cursorRing.style.left = rx + 'px'; cursorRing.style.top = ry + 'px';
-  requestAnimationFrame(animCursor);
-})();
-document.querySelectorAll('a,button,.card,.step,.sector-card,.stat-item,.vtype').forEach(el => {
-  el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
-  el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+/* CURSOR */
+const cd=document.getElementById('cursor-dot'),cr=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+(function a(){rx+=(mx-rx)*.14;ry+=(my-ry)*.14;cd.style.left=mx+'px';cd.style.top=my+'px';cr.style.left=rx+'px';cr.style.top=ry+'px';requestAnimationFrame(a)})();
+document.querySelectorAll('a,button,.card,.step,.sector-card,.stat-item,.iv-btn,.pc-tab,.vtype').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('ch'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('ch'));
 });
 
-/* ── NAV SCROLL ── */
-lenis.on('scroll', ({scroll}) => {
-  document.getElementById('main-nav').classList.toggle('scrolled', scroll > 60);
-});
+/* NAV */
+lenis.on('scroll',({scroll})=>document.getElementById('main-nav').classList.toggle('sc',scroll>50));
 
-/* ── HERO CANVAS ── */
+/* HERO CANVAS */
 (function(){
-  const canvas = document.getElementById('hero-canvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, particles = [], lanes = [];
-  const TEAL = '#3ECBA0', TEAL2 = '#2BA882';
-  function resize(){
-    W = canvas.width = canvas.offsetWidth;
-    H = canvas.height = canvas.offsetHeight;
-    lanes = [];
-    const n = Math.floor(H / 48);
-    for(let i=0;i<n;i++) lanes.push({ y:24+i*(H-48)/n, dir:i%2===0?1:-1, speed:0.4+Math.random()*0.8 });
-  }
-  function spawn(){
-    const lane = lanes[Math.floor(Math.random()*lanes.length)];
-    const len = 20+Math.random()*80;
-    particles.push({ x:lane.dir>0?-len:W+len, y:lane.y+(Math.random()-.5)*20, len, speed:(lane.speed+Math.random()*0.8)*lane.dir, alpha:0.2+Math.random()*0.5, color:Math.random()>.5?TEAL2:TEAL, w:1+Math.random()*2 });
-  }
-  function drawGrid(){
-    ctx.strokeStyle='rgba(62,203,160,0.05)'; ctx.lineWidth=1;
-    for(let x=0;x<W;x+=64){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
-    for(let y=0;y<H;y+=64){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
-  }
-  let frame=0;
-  function animate(){
+  const cv=document.getElementById('hero-canvas'),ctx=cv.getContext('2d');
+  let W,H,nodes=[];
+  function resize(){W=cv.width=cv.offsetWidth;H=cv.height=cv.offsetHeight;nodes=[];for(let i=0;i<40;i++)nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3});}
+  function draw(){
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#080808'; ctx.fillRect(0,0,W,H);
-    drawGrid();
-    if(frame++%14===0&&particles.length<80) spawn();
-    particles=particles.filter(p=>p.x>-300&&p.x<W+300);
-    particles.forEach(p=>{
-      p.x+=p.speed*3;
-      ctx.save(); ctx.globalAlpha=p.alpha;
-      const g=ctx.createLinearGradient(p.x-p.len*Math.sign(p.speed),p.y,p.x,p.y);
-      g.addColorStop(0,'transparent'); g.addColorStop(1,p.color);
-      ctx.strokeStyle=g; ctx.lineWidth=p.w;
-      ctx.beginPath(); ctx.moveTo(p.x-p.len*Math.sign(p.speed),p.y); ctx.lineTo(p.x,p.y); ctx.stroke();
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.w+0.5,0,Math.PI*2); ctx.fillStyle=p.color; ctx.fill();
-      ctx.restore();
+    ctx.fillStyle='#F7F6F3';ctx.fillRect(0,0,W,H);
+    /* grid */
+    ctx.strokeStyle='rgba(0,0,0,.04)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    /* connections */
+    nodes.forEach((n,i)=>{
+      nodes.slice(i+1).forEach(m=>{
+        const d=Math.hypot(n.x-m.x,n.y-m.y);
+        if(d<160){ctx.strokeStyle=`rgba(0,0,0,${(1-d/160)*.08})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(m.x,m.y);ctx.stroke();}
+      });
     });
-    requestAnimationFrame(animate);
+    /* nodes */
+    nodes.forEach(n=>{
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<0||n.x>W)n.vx*=-1;
+      if(n.y<0||n.y>H)n.vy*=-1;
+      ctx.beginPath();ctx.arc(n.x,n.y,2,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.2)';ctx.fill();
+    });
+    requestAnimationFrame(draw);
   }
-  window.addEventListener('resize', resize);
-  resize(); animate();
+  window.addEventListener('resize',resize);resize();draw();
 })();
 
-/* ── MARQUEE ── */
-const items = ['Medición vehicular','IA en tiempo real','Flujo peatonal','Informes automáticos','Smart city','Visión computacional','Análisis de tráfico','Movilidad urbana'];
-const track = document.getElementById('marquee-track');
-[...items,...items].forEach(t => {
-  const d = document.createElement('div'); d.className = 'marquee-item';
-  d.innerHTML = t+'<span class="marquee-sep"></span>';
-  track.appendChild(d);
-});
+/* MARQUEE */
+const mqItems=['Medición vehicular','IA en tiempo real','Flujo peatonal','Informes automáticos','Smart city','Visión computacional','Análisis de tráfico','Movilidad urbana','Puntos de control','Tipología vehicular'];
+const mq=document.getElementById('mq-track');
+[...mqItems,...mqItems].forEach(t=>{const d=document.createElement('div');d.className='mq-item';d.innerHTML=t+'<span class="mq-dot"></span>';mq.appendChild(d);});
 
-/* ── GSAP HERO ANIMATION ── */
+/* GSAP HERO */
 gsap.registerPlugin(ScrollTrigger);
-window.addEventListener('load', () => {
-  const tl = gsap.timeline();
-  tl.to('.hero-tag', { opacity:1, y:0, duration:.8, ease:'power3.out' })
-    .to('.h1 .word, h1 .word', { y:'0%', duration:1.1, stagger:.12, ease:'power4.out' }, '-=0.4')
-    .to('.hero-sub', { opacity:1, y:0, duration:.8, ease:'power3.out' }, '-=0.5')
-    .to('.hero-btns', { opacity:1, y:0, duration:.8, ease:'power3.out' }, '-=0.5')
-    .to('.hero-scroll', { opacity:1, duration:.6, ease:'power2.out' }, '-=0.3');
+window.addEventListener('load',()=>{
+  gsap.timeline()
+    .to('.hero-eyebrow',{opacity:1,y:0,duration:.8,ease:'power3.out'})
+    .to('h1 .word',{y:'0%',duration:1.1,stagger:.1,ease:'power4.out'},'-=.4')
+    .to('.hero-sub',{opacity:1,duration:.8,ease:'power3.out'},'-=.4')
+    .to('.hero-btns',{opacity:1,duration:.8,ease:'power3.out'},'-=.4')
+    .to('.hero-scroll',{opacity:1,duration:.6,ease:'power2.out'},'-=.3');
 });
 
-/* ── COUNTERS ── */
-function animCounter(el, target, suffix, dur){
-  let start=null;
-  (function step(ts){
-    if(!start)start=ts;
-    const p=Math.min((ts-start)/dur,1);
-    el.innerHTML=Math.floor(p*target).toLocaleString()+suffix;
-    if(p<1)requestAnimationFrame(step);
-  })(performance.now());
+/* COUNTERS */
+function animCount(el,target,suf,dur){
+  let s=null;
+  (function step(ts){if(!s)s=ts;const p=Math.min((ts-s)/dur,1);el.innerHTML=Math.floor(p*target).toLocaleString()+suf;if(p<1)requestAnimationFrame(step);})(performance.now());
 }
-const statsObs = new IntersectionObserver(entries=>{
+const so=new IntersectionObserver(entries=>{
   if(entries[0].isIntersecting){
-    animCounter(document.getElementById('c1'),48000,'+',2000);
-    animCounter(document.getElementById('c2'),97,'%',1500);
-    animCounter(document.getElementById('c3'),124,'',1800);
-    animCounter(document.getElementById('c4'),12,'',1200);
-    statsObs.disconnect();
+    animCount(document.getElementById('c1'),48000,'+',2000);
+    animCount(document.getElementById('c2'),97,'%',1500);
+    animCount(document.getElementById('c3'),124,'',1800);
+    animCount(document.getElementById('c4'),12,'',1200);
+    so.disconnect();
   }
-},{threshold:0.4});
-statsObs.observe(document.querySelector('.stats-bar'));
+},{threshold:.4});
+so.observe(document.querySelector('.stats-bar'));
 
-/* ── REVEAL ON SCROLL ── */
-const revObs = new IntersectionObserver(entries=>{
-  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
-},{threshold:0.08, rootMargin:'0px 0px -30px 0px'});
-document.querySelectorAll('.reveal').forEach(el=>revObs.observe(el));
+/* REVEAL */
+const ro=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.07,rootMargin:'0px 0px -20px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
 
-/* ── PROCESO STEPS ── */
-const steps = document.querySelectorAll('.step');
-const panels = document.querySelectorAll('.vis-panel');
-steps.forEach(step => {
-  step.addEventListener('click', () => {
-    steps.forEach(s=>s.classList.remove('active'));
+/* PROCESO */
+const steps=document.querySelectorAll('.step');
+const panels=document.querySelectorAll('.vis-panel');
+steps.forEach(s=>{
+  s.addEventListener('click',()=>{
+    steps.forEach(x=>x.classList.remove('active'));
     panels.forEach(p=>p.classList.remove('active'));
-    step.classList.add('active');
-    document.getElementById('vp'+step.dataset.step).classList.add('active');
+    s.classList.add('active');
+    document.getElementById('vp'+s.dataset.step).classList.add('active');
   });
 });
-// Auto-advance steps on scroll
-gsap.utils.toArray('.step').forEach((step, i) => {
-  ScrollTrigger.create({
-    trigger: step,
-    start: 'top center',
-    onEnter: () => {
-      steps.forEach(s=>s.classList.remove('active'));
-      panels.forEach(p=>p.classList.remove('active'));
-      step.classList.add('active');
-      document.getElementById('vp'+step.dataset.step).classList.add('active');
-    }
+gsap.utils.toArray('.step').forEach((s,i)=>{
+  ScrollTrigger.create({trigger:s,start:'top center',onEnter:()=>{
+    steps.forEach(x=>x.classList.remove('active'));
+    panels.forEach(p=>p.classList.remove('active'));
+    s.classList.add('active');
+    document.getElementById('vp'+s.dataset.step).classList.add('active');
+  }});
+});
+
+/* DASHBOARD DATA */
+const pc_names=['PC-01 · Av. Vicuña Mackenna','PC-02 · Av. Grecia','PC-03 · Av. Irarrázaval'];
+const tipoList=['V. Liviano','Taxi Col.','Taxi Bus Pub.','Taxi Bus Priv.','Buses','Bus Articulado','Cam. 2 ejes','Cam. +2 ejes','Bus Interurb.','Bicicleta','Motos','T. Escolar'];
+
+// Seed pseudo-random per PC + period
+function pcSeed(pc,period){return (pc*7+period*13);}
+function pseudoRand(seed,i){return ((seed*31+i*17)%100)/100;}
+
+const periods={
+  'mañana':  {label:'Mañana 07:00–09:00', intervals:['07:00','07:15','07:30','07:45','08:00','08:15','08:30','08:45']},
+  'mediodia':{label:'Mediodía 12:00–14:00',intervals:['12:00','12:15','12:30','12:45','13:00','13:15','13:30','13:45']},
+  'tarde':   {label:'Tarde 17:00–19:00',   intervals:['17:00','17:15','17:30','17:45','18:00','18:15','18:30','18:45']}
+};
+const pcBase={0:820, 1:560, 2:690};
+const periodMult={'mañana':1.0,'mediodia':0.72,'tarde':0.88};
+
+let currentPC=0, currentPeriod='mañana';
+
+/* tipo proportions per PC */
+const tipoProportions={
+  0:[0.52,0.06,0.09,0.05,0.07,0.03,0.05,0.03,0.02,0.03,0.04,0.01],
+  1:[0.48,0.08,0.11,0.06,0.08,0.02,0.04,0.02,0.01,0.04,0.05,0.01],
+  2:[0.55,0.05,0.08,0.04,0.09,0.04,0.04,0.02,0.02,0.03,0.03,0.01]
+};
+
+function genData(pc, period){
+  const base=pcBase[pc]*periodMult[period];
+  return periods[period].intervals.map((t,i)=>{
+    const noise=0.8+pseudoRand(pcSeed(pc,Object.keys(periods).indexOf(period)),i)*0.4;
+    return Math.round(base*noise/8);
   });
-});
-
-/* ── CHARTS ── */
-const gc='rgba(255,255,255,0.04)', tc='rgba(255,255,255,0.3)';
-const hours=['06','07','08','09','10','11','12','13','14','15','16','17'];
-const baseData=[210,580,920,760,540,480,530,490,610,740,890,1100];
-
-const lineChart = new Chart(document.getElementById('lineChart'),{
-  type:'line',
-  data:{ labels:hours, datasets:[{ label:'Vehículos/hora', data:[...baseData], borderColor:'#3ECBA0', backgroundColor:'rgba(62,203,160,0.06)', borderWidth:2, pointRadius:2, pointBackgroundColor:'#3ECBA0', fill:true, tension:0.4 }] },
-  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:gc},ticks:{color:tc,font:{size:10}}}, y:{grid:{color:gc},ticks:{color:tc,font:{size:10}}} } }
-});
-new Chart(document.getElementById('barChart'),{
-  type:'bar',
-  data:{ labels:['Autos','Cam.','Buses','Motos','Otros'], datasets:[{ data:[680,142,89,214,118], backgroundColor:['#3ECBA0','rgba(62,203,160,.6)','rgba(62,203,160,.4)','rgba(62,203,160,.25)','rgba(62,203,160,.12)'], borderRadius:4, borderSkipped:false }] },
-  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{grid:{color:gc},ticks:{color:tc,font:{size:10}}}, y:{grid:{color:gc},ticks:{color:tc,font:{size:10}}} } }
-});
-new Chart(document.getElementById('pieChart'),{
-  type:'doughnut',
-  data:{ labels:['N→S','S→N','E→O','O→E'], datasets:[{ data:[34,28,22,16], backgroundColor:['#3ECBA0','rgba(62,203,160,.55)','rgba(62,203,160,.28)','rgba(62,203,160,.12)'], borderColor:'#080808', borderWidth:3 }] },
-  options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{color:tc,font:{size:10},padding:8,boxWidth:8} } }, cutout:'65%' }
-});
-
-/* vtypes */
-const vtypes = ['Todos','Autos','Camiones','Buses','Motos','Peatones'];
-const vt = document.getElementById('vtypes');
-let activeVT='todos';
-vtypes.forEach(t=>{
-  const b=document.createElement('button');
-  b.className='vtype'+(t==='Todos'?' active':'');
-  b.textContent=t;
-  b.addEventListener('click',()=>{
-    activeVT=t.toLowerCase();
-    vt.querySelectorAll('.vtype').forEach(v=>v.classList.remove('active'));
-    b.classList.add('active');
-  });
-  vt.appendChild(b);
-});
-
-/* live metrics */
-let mTotal=1243, mPeat=387, mVel=42, mCong=18;
-setInterval(()=>{
-  mTotal=Math.max(800,mTotal+Math.floor(Math.random()*10)-4);
-  mPeat=Math.max(100,mPeat+Math.floor(Math.random()*6)-3);
-  mVel=Math.max(20,Math.min(80,mVel+Math.floor(Math.random()*4)-2));
-  mCong=Math.max(0,Math.min(100,mCong+Math.floor(Math.random()*4)-2));
-  document.getElementById('m1').textContent=mTotal.toLocaleString();
-  document.getElementById('m2').textContent=mPeat.toLocaleString();
-  document.getElementById('m3').textContent=mVel;
-  document.getElementById('m4').textContent=mCong+'%';
-  document.getElementById('m4d').textContent=mCong>30?'⚠ Alta':'✓ Normal';
-  const d=lineChart.data.datasets[0].data;
-  d.push(Math.max(100,d[d.length-1]+Math.floor(Math.random()*130)-65));
-  d.shift();
-  lineChart.update('none');
-},1800);
-
-/* ── CONTACT FORM ── */
-function handleSubmit(){
-  const n=document.getElementById('f-nombre').value;
-  const e=document.getElementById('f-email').value;
-  if(!n.trim()||!e.trim()||!/\S+@\S+\.\S+/.test(e)){
-    alert('Por favor completa nombre y correo electrónico.');
-    return;
-  }
-  document.getElementById('contact-wrap').innerHTML=`
-    <div class="form-success">
-      <h3>Mensaje enviado ✓</h3>
-      <p style="color:var(--mid)">Nos pondremos en contacto en menos de 24 horas hábiles.</p>
-    </div>`;
 }
 
-/* ── GSAP PARALLAX SECTIONS ── */
-gsap.utils.toArray('h2').forEach(h=>{
-  gsap.fromTo(h, {y:30,opacity:0},{
-    y:0, opacity:1, duration:1.2, ease:'power3.out',
-    scrollTrigger:{ trigger:h, start:'top 85%', toggleActions:'play none none none' }
+function genTipoData(pc,period){
+  const total=genData(pc,period).reduce((a,b)=>a+b,0);
+  return tipoProportions[pc].map((p,i)=>({name:tipoList[i],count:Math.round(total*p*(0.9+pseudoRand(pc*3+i,i)*0.2))}));
+}
+
+/* Init charts */
+const gc='rgba(0,0,0,.06)',tc='rgba(0,0,0,.35)';
+const lineChart=new Chart(document.getElementById('lineChart'),{
+  type:'line',
+  data:{labels:periods[currentPeriod].intervals,datasets:[{label:'Vehículos',data:genData(0,'mañana'),borderColor:'#0A0A0A',backgroundColor:'rgba(0,0,0,.04)',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#0A0A0A',fill:true,tension:.35}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:10,family:'Inter'}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:10,family:'Inter'}}}}}
+});
+
+function updateTipoTable(pc,period){
+  const data=genTipoData(pc,period).sort((a,b)=>b.count-a.count);
+  const total=data.reduce((s,d)=>s+d.count,0);
+  const body=document.getElementById('tipo-body');
+  body.innerHTML=data.map(d=>{
+    const pct=Math.round(d.count/total*100);
+    return `<tr><td>${d.name}</td><td><div style="display:flex;align-items:center;gap:6px"><span>${d.count}</span><span class="tipo-bar" style="width:${pct}px"></span></div></td></tr>`;
+  }).join('');
+}
+
+function updateMetrics(pc,period){
+  const data=genData(pc,period);
+  const total=data.reduce((a,b)=>a+b,0);
+  const tipoData=genTipoData(pc,period);
+  const liviano=tipoData[0].count;
+  const buses=tipoData[2].count+tipoData[3].count+tipoData[4].count+tipoData[5].count;
+  const camiones=tipoData[6].count+tipoData[7].count;
+  document.getElementById('mt').textContent=total.toLocaleString('es-CL');
+  document.getElementById('mt-d').textContent=periods[period].label;
+  document.getElementById('ml').textContent=Math.round(liviano/total*100)+'%';
+  document.getElementById('mb').textContent=Math.round(buses/total*100)+'%';
+  document.getElementById('mc').textContent=Math.round(camiones/total*100)+'%';
+}
+
+function updateDashboard(pc,period){
+  const data=genData(pc,period);
+  lineChart.data.labels=periods[period].intervals;
+  lineChart.data.datasets[0].data=data;
+  lineChart.update();
+  document.getElementById('chart-period-label').textContent=`Flujo vehicular — ${pc_names[pc]} — ${periods[period].label}`;
+  updateTipoTable(pc,period);
+  updateMetrics(pc,period);
+}
+
+/* PC tabs */
+document.querySelectorAll('.pc-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.pc-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPC=+btn.dataset.pc;
+    updateDashboard(currentPC,currentPeriod);
   });
+});
+
+/* Interval buttons */
+document.querySelectorAll('.iv-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.iv-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod=btn.dataset.iv;
+    updateDashboard(currentPC,currentPeriod);
+  });
+});
+
+updateDashboard(0,'mañana');
+
+/* CONTACT */
+function submitForm(){
+  const n=document.getElementById('fn').value;
+  const e=document.getElementById('fm').value;
+  if(!n.trim()||!e.trim()||!/\S+@\S+\.\S+/.test(e)){alert('Por favor completa nombre y correo.');return;}
+  document.getElementById('form-wrap').innerHTML=`<div class="form-success"><h3>Mensaje enviado ✓</h3><p>Nos pondremos en contacto en menos de 24 horas hábiles.</p></div>`;
+}
+
+/* GSAP h2 reveals */
+gsap.utils.toArray('h2').forEach(h=>{
+  gsap.fromTo(h,{y:24,opacity:0},{y:0,opacity:1,duration:1.1,ease:'power3.out',scrollTrigger:{trigger:h,start:'top 88%',toggleActions:'play none none none'}});
 });
 </script>
-
 </body>
 </html>
