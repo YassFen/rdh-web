@@ -30,10 +30,15 @@
 
     /* CURSOR */
     #cursor{position:fixed;top:0;left:0;z-index:9999;pointer-events:none}
-    #cursor-dot{width:6px;height:6px;background:var(--black);border-radius:50%;position:absolute;transform:translate(-50%,-50%);transition:width .2s,height .2s}
+    #cursor-dot{width:6px;height:6px;background:var(--black);border-radius:50%;position:absolute;transform:translate(-50%,-50%);transition:width .2s,height .2s,background .3s}
     #cursor-ring{width:36px;height:36px;border:1px solid rgba(0,0,0,0.3);border-radius:50%;position:absolute;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s}
     body.ch #cursor-dot{width:10px;height:10px}
     body.ch #cursor-ring{width:52px;height:52px;border-color:rgba(0,0,0,0.7)}
+    /* Cursor invertido para fondos oscuros */
+    body.dark-bg #cursor-dot{background:#fff}
+    body.dark-bg #cursor-ring{border-color:rgba(255,255,255,0.4)}
+    body.dark-bg.ch #cursor-dot{background:#fff}
+    body.dark-bg.ch #cursor-ring{border-color:rgba(255,255,255,0.7)}
 
     /* NAV */
     nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 60px;height:68px;transition:background .4s,border-color .4s;border-bottom:1px solid transparent}
@@ -106,31 +111,113 @@
     .card h3{font-family:var(--font-body);font-size:20px;font-weight:600;margin-bottom:12px;color:var(--black);letter-spacing:-.01em}
     .card p{font-size:14px;color:var(--mid);line-height:1.75}
 
-    /* PROCESO — minimalista */
-    #proceso{background:var(--gray);border-top:1px solid var(--border)}
-    .proc-inner{max-width:1100px;margin:0 auto}
-    .proc-grid{display:grid;grid-template-columns:1fr 1fr;gap:96px;margin-top:72px;align-items:start}
-    .proc-steps{}
-    .step{padding:28px 0;border-top:1px solid var(--border);cursor:pointer;position:relative}
-    .step:last-child{border-bottom:1px solid var(--border)}
-    .step-row{display:flex;align-items:center;gap:20px;justify-content:space-between}
-    .step-left{display:flex;align-items:center;gap:16px}
-    .step-num{font-size:11px;font-weight:600;letter-spacing:.15em;color:var(--mid);transition:color .3s;min-width:24px}
-    .step-title{font-family:var(--font-body);font-size:17px;font-weight:500;color:rgba(0,0,0,.35);letter-spacing:-.01em;transition:color .3s}
-    .step-plus{font-size:18px;color:var(--mid);transition:transform .35s,color .3s;line-height:1}
-    .step.active .step-num{color:var(--black)}
-    .step.active .step-title{color:var(--black)}
-    .step.active .step-plus{transform:rotate(45deg);color:var(--black)}
-    .step-body{font-size:14px;color:var(--mid);line-height:1.8;max-height:0;overflow:hidden;transition:max-height .45s ease,opacity .35s,padding .35s;opacity:0;padding-left:40px}
-    .step.active .step-body{max-height:100px;opacity:1;padding-top:14px}
+    /* ── PROCESO: SCROLL VERTICAL FULLSCREEN ── */
+    #proceso{background:var(--black);padding:120px 0 0;}
+    .proc-header{padding:0 80px;margin-bottom:80px}
+    .proc-header .section-tag{color:rgba(255,255,255,.35)}
+    .proc-header h2{color:#fff;font-style:italic}
 
-    /* Visual panel lado derecho */
-    .proc-visual{position:sticky;top:110px;height:420px;border:1px solid var(--border);background:var(--white);display:flex;align-items:center;justify-content:center;overflow:hidden}
-    .vis-panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:48px;opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s}
-    .vis-panel.active{opacity:1;transform:translateY(0)}
-    .vis-title{font-family:var(--font-body);font-size:18px;font-weight:600;color:var(--black);text-align:center;letter-spacing:-.01em}
-    .vis-sub{font-size:13px;color:var(--mid);text-align:center;line-height:1.7}
-    .vis-step-num{font-size:72px;font-weight:700;color:rgba(0,0,0,.06);font-family:var(--font-body);line-height:1;position:absolute;right:32px;bottom:24px;letter-spacing:-.06em}
+    /* Línea de tiempo vertical izquierda */
+    .proc-timeline{
+      position:relative;
+      padding:0 80px;
+    }
+    .proc-timeline::before{
+      content:'';
+      position:absolute;
+      left:calc(80px + 19px);
+      top:0; bottom:0;
+      width:1px;
+      background:rgba(255,255,255,.08);
+    }
+
+    /* Cada paso */
+    .proc-item{
+      display:grid;
+      grid-template-columns:40px 1fr 1fr;
+      gap:0 60px;
+      align-items:center;
+      padding:80px 0;
+      border-bottom:1px solid rgba(255,255,255,.05);
+      opacity:0;
+      transform:translateY(40px);
+      transition:opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);
+    }
+    .proc-item:last-child{border-bottom:none;padding-bottom:120px}
+    .proc-item.visible{opacity:1;transform:translateY(0)}
+
+    /* Número / dot en la línea */
+    .proc-num-col{
+      display:flex;flex-direction:column;align-items:center;gap:0;
+      position:relative;z-index:2;
+    }
+    .proc-num-circle{
+      width:40px;height:40px;border-radius:50%;
+      border:1px solid rgba(255,255,255,.15);
+      background:var(--black);
+      display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:700;letter-spacing:.1em;
+      color:rgba(255,255,255,.4);
+      transition:border-color .4s,color .4s,background .4s;
+    }
+    .proc-item.visible .proc-num-circle{
+      border-color:rgba(255,255,255,.5);
+      color:#fff;
+    }
+
+    /* Texto */
+    .proc-text-col{padding-right:24px}
+    .proc-step-tag{
+      font-size:10px;font-weight:600;letter-spacing:.2em;
+      text-transform:uppercase;color:rgba(255,255,255,.25);
+      margin-bottom:16px;
+    }
+    .proc-item h3{
+      font-family:var(--font-head);font-style:italic;
+      font-size:clamp(28px,3vw,44px);font-weight:400;
+      color:#fff;line-height:1.1;letter-spacing:-.02em;
+      margin-bottom:18px;
+    }
+    .proc-desc{
+      font-size:15px;color:rgba(255,255,255,.4);
+      line-height:1.85;max-width:360px;
+    }
+    .proc-stat{
+      margin-top:28px;padding-top:24px;
+      border-top:1px solid rgba(255,255,255,.07);
+      display:flex;align-items:baseline;gap:10px;
+    }
+    .proc-stat-val{
+      font-size:28px;font-weight:700;color:#fff;
+      letter-spacing:-.03em;
+    }
+    .proc-stat-label{
+      font-size:11px;font-weight:500;letter-spacing:.1em;
+      text-transform:uppercase;color:rgba(255,255,255,.25);
+    }
+
+    /* Canvas visual */
+    .proc-vis-col{
+      height:320px;
+      border:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.02);
+      position:relative;overflow:hidden;
+    }
+    .proc-vis-col canvas{
+      position:absolute;inset:0;width:100%;height:100%;
+    }
+    .proc-vis-badge{
+      position:absolute;bottom:16px;left:20px;
+      font-size:9px;font-weight:600;letter-spacing:.16em;
+      text-transform:uppercase;color:rgba(255,255,255,.2);
+    }
+
+    @media(max-width:960px){
+      .proc-header,.proc-timeline{padding:0 24px}
+      .proc-timeline::before{left:calc(24px + 19px)}
+      .proc-item{grid-template-columns:40px 1fr;gap:0 20px}
+      .proc-vis-col{display:none}
+    }
 
     /* DASHBOARD */
     #dashboard{background:var(--white);border-top:1px solid var(--border)}
@@ -393,97 +480,88 @@
 
 <!-- PROCESO -->
 <section id="proceso">
-  <div class="proc-inner">
-    <div class="reveal">
-      <div class="section-tag">Tecnología</div>
-      <h2>El proceso detrás de cada dato</h2>
-    </div>
-    <div class="proc-grid">
-      <div class="proc-steps reveal d1" id="proc-steps">
-        <div class="step active" data-step="0">
-          <div class="step-row">
-            <div class="step-left">
-              <span class="step-num">01</span>
-              <span class="step-title">Captura con cámara</span>
-            </div>
-            <span class="step-plus">+</span>
-          </div>
-          <div class="step-body">Video en tiempo real desde dispositivos fijos o móviles. Compatible con cámaras IP existentes sin hardware propietario adicional.</div>
-        </div>
-        <div class="step" data-step="1">
-          <div class="step-row">
-            <div class="step-left">
-              <span class="step-num">02</span>
-              <span class="step-title">Modelo IA clasifica</span>
-            </div>
-            <span class="step-plus">+</span>
-          </div>
-          <div class="step-body">Visión computacional detecta tipo de vehículo, dirección, velocidad y ocupación de carril en cada fotograma.</div>
-        </div>
-        <div class="step" data-step="2">
-          <div class="step-row">
-            <div class="step-left">
-              <span class="step-num">03</span>
-              <span class="step-title">Datos en tiempo real</span>
-            </div>
-            <span class="step-plus">+</span>
-          </div>
-          <div class="step-body">Métricas actualizadas cada 15 minutos por punto de control. Alertas automáticas ante congestión o anomalías de tráfico detectadas.</div>
-        </div>
-        <div class="step" data-step="3">
-          <div class="step-row">
-            <div class="step-left">
-              <span class="step-num">04</span>
-              <span class="step-title">Reporte automático</span>
-            </div>
-            <span class="step-plus">+</span>
-          </div>
-          <div class="step-body">PDF o Excel con análisis de tendencias, comparativas por período, tipología vehicular y recomendaciones para planificación vial.</div>
+  <div class="proc-header">
+    <div class="section-tag">Tecnología</div>
+    <h2>De la cámara al dato.<br/>En segundos.</h2>
+  </div>
+  <div class="proc-timeline">
+
+    <div class="proc-item" id="pi0">
+      <div class="proc-num-col">
+        <div class="proc-num-circle">01</div>
+      </div>
+      <div class="proc-text-col">
+        <div class="proc-step-tag">Paso 01 — Captura</div>
+        <h3>Cámara o sensor registra el tráfico</h3>
+        <p class="proc-desc">Video en tiempo real desde dispositivos fijos o móviles. Compatible con cámaras IP existentes — sin hardware propietario ni instalaciones invasivas.</p>
+        <div class="proc-stat">
+          <span class="proc-stat-val">24/7</span>
+          <span class="proc-stat-label">Captura continua</span>
         </div>
       </div>
-      <div class="proc-visual reveal d2" id="proc-visual">
-        <div class="vis-panel active" id="vp0">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-            <rect x="8" y="16" width="40" height="24" rx="5" stroke="#0A0A0A" stroke-width="1.5"/>
-            <circle cx="28" cy="28" r="7" stroke="#0A0A0A" stroke-width="1.5"/>
-            <circle cx="28" cy="28" r="3" fill="#0A0A0A" opacity=".4"/>
-          </svg>
-          <div class="vis-title">Cámara / Sensor</div>
-          <div class="vis-sub">Captura de video en tiempo real desde infraestructura existente</div>
-          <span class="vis-step-num">01</span>
-        </div>
-        <div class="vis-panel" id="vp1">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-            <rect x="8" y="8" width="40" height="40" rx="5" stroke="#0A0A0A" stroke-width="1.5"/>
-            <path d="M14 28h8l6-10 8 20 6-10h6" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div class="vis-title">Modelo de IA</div>
-          <div class="vis-sub">Visión computacional + clasificación por tipología vehicular</div>
-          <span class="vis-step-num">02</span>
-        </div>
-        <div class="vis-panel" id="vp2">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-            <polyline points="8,44 18,30 26,36 36,18 46,24" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="46" cy="24" r="4" fill="#0A0A0A" opacity=".5"/>
-            <line x1="8" y1="48" x2="48" y2="48" stroke="#0A0A0A" stroke-width="1" opacity=".2"/>
-          </svg>
-          <div class="vis-title">Datos en tiempo real</div>
-          <div class="vis-sub">Métricas por punto de control, actualizadas cada 15 minutos</div>
-          <span class="vis-step-num">03</span>
-        </div>
-        <div class="vis-panel" id="vp3">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-            <rect x="14" y="6" width="28" height="44" rx="4" stroke="#0A0A0A" stroke-width="1.5"/>
-            <line x1="20" y1="16" x2="36" y2="16" stroke="#0A0A0A" stroke-width="1.5"/>
-            <line x1="20" y1="23" x2="32" y2="23" stroke="#0A0A0A" stroke-width="1" opacity=".4"/>
-            <path d="M20 36l4-6 5 4 5-6 4 3" stroke="#0A0A0A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div class="vis-title">Reporte automático</div>
-          <div class="vis-sub">PDF/Excel con análisis de tendencias y proyecciones viales</div>
-          <span class="vis-step-num">04</span>
-        </div>
+      <div class="proc-vis-col">
+        <canvas id="cv0"></canvas>
+        <div class="proc-vis-badge">Señal de video · Infraestructura existente</div>
       </div>
     </div>
+
+    <div class="proc-item" id="pi1">
+      <div class="proc-num-col">
+        <div class="proc-num-circle">02</div>
+      </div>
+      <div class="proc-text-col">
+        <div class="proc-step-tag">Paso 02 — Análisis IA</div>
+        <h3>Modelo de IA clasifica cada fotograma</h3>
+        <p class="proc-desc">Visión computacional identifica tipo de vehículo, dirección de flujo, velocidad estimada y ocupación de carril en cada frame del video.</p>
+        <div class="proc-stat">
+          <span class="proc-stat-val">12</span>
+          <span class="proc-stat-label">Tipologías vehiculares detectadas</span>
+        </div>
+      </div>
+      <div class="proc-vis-col">
+        <canvas id="cv1"></canvas>
+        <div class="proc-vis-badge">Visión computacional · Clasificación en tiempo real</div>
+      </div>
+    </div>
+
+    <div class="proc-item" id="pi2">
+      <div class="proc-num-col">
+        <div class="proc-num-circle">03</div>
+      </div>
+      <div class="proc-text-col">
+        <div class="proc-step-tag">Paso 03 — Datos</div>
+        <h3>Métricas disponibles al instante</h3>
+        <p class="proc-desc">Conteos totalizados automáticamente en tramos de 15 minutos por punto de control. Alertas ante congestión o anomalías detectadas.</p>
+        <div class="proc-stat">
+          <span class="proc-stat-val">15 min</span>
+          <span class="proc-stat-label">Intervalo de totalización</span>
+        </div>
+      </div>
+      <div class="proc-vis-col">
+        <canvas id="cv2"></canvas>
+        <div class="proc-vis-badge">Flujo vehicular · Actualización por intervalos</div>
+      </div>
+    </div>
+
+    <div class="proc-item" id="pi3">
+      <div class="proc-num-col">
+        <div class="proc-num-circle">04</div>
+      </div>
+      <div class="proc-text-col">
+        <div class="proc-step-tag">Paso 04 — Reporte</div>
+        <h3>Informe generado automáticamente</h3>
+        <p class="proc-desc">PDF o Excel con análisis de tendencias, comparativas por período, tipología vehicular detallada y recomendaciones para planificación vial.</p>
+        <div class="proc-stat">
+          <span class="proc-stat-val">PDF · XLS</span>
+          <span class="proc-stat-label">Formatos de entrega</span>
+        </div>
+      </div>
+      <div class="proc-vis-col">
+        <canvas id="cv3"></canvas>
+        <div class="proc-vis-badge">Informe final · Entrega periódica automatizada</div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -727,10 +805,22 @@ const cd=document.getElementById('cursor-dot'),cr=document.getElementById('curso
 let mx=0,my=0,rx=0,ry=0;
 window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
 (function a(){rx+=(mx-rx)*.14;ry+=(my-ry)*.14;cd.style.left=mx+'px';cd.style.top=my+'px';cr.style.left=rx+'px';cr.style.top=ry+'px';requestAnimationFrame(a)})();
-document.querySelectorAll('a,button,.card,.step,.sector-card,.stat-item,.iv-btn,.pc-tab,.vtype').forEach(el=>{
+document.querySelectorAll('a,button,.card,.sector-card,.stat-item,.iv-btn,.pc-tab,.vtype,.proc-arr,.proc-dot').forEach(el=>{
   el.addEventListener('mouseenter',()=>document.body.classList.add('ch'));
   el.addEventListener('mouseleave',()=>document.body.classList.remove('ch'));
 });
+/* Detectar sección oscura bajo el cursor */
+const darkSections=['#proceso','#metodologia','footer'];
+function updateCursorTheme(){
+  const el=document.elementFromPoint(mx,my);
+  if(!el){document.body.classList.remove('dark-bg');return;}
+  const isDark=darkSections.some(sel=>{
+    const s=document.querySelector(sel);
+    return s&&s.contains(el);
+  });
+  document.body.classList.toggle('dark-bg',isDark);
+}
+window.addEventListener('mousemove',updateCursorTheme);
 
 /* NAV */
 lenis.on('scroll',({scroll})=>document.getElementById('main-nav').classList.toggle('sc',scroll>50));
@@ -802,25 +892,245 @@ so.observe(document.querySelector('.stats-bar'));
 const ro=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.07,rootMargin:'0px 0px -20px 0px'});
 document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
 
-/* PROCESO */
-const steps=document.querySelectorAll('.step');
-const panels=document.querySelectorAll('.vis-panel');
-steps.forEach(s=>{
-  s.addEventListener('click',()=>{
-    steps.forEach(x=>x.classList.remove('active'));
-    panels.forEach(p=>p.classList.remove('active'));
-    s.classList.add('active');
-    document.getElementById('vp'+s.dataset.step).classList.add('active');
-  });
-});
-gsap.utils.toArray('.step').forEach((s,i)=>{
-  ScrollTrigger.create({trigger:s,start:'top center',onEnter:()=>{
-    steps.forEach(x=>x.classList.remove('active'));
-    panels.forEach(p=>p.classList.remove('active'));
-    s.classList.add('active');
-    document.getElementById('vp'+s.dataset.step).classList.add('active');
-  }});
-});
+/* ── PROCESO: SCROLL VERTICAL ── */
+(function(){
+  const items=document.querySelectorAll('.proc-item');
+
+  // IntersectionObserver para revelar cada paso y arrancar su canvas
+  const io=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+        const idx=+e.target.id.replace('pi','');
+        startCanvas(idx);
+      }
+    });
+  },{threshold:0.2});
+  items.forEach(it=>io.observe(it));
+
+  /* ── CANVAS ── */
+  const started={};
+  function startCanvas(idx){
+    if(started[idx]) return;
+    started[idx]=true;
+    const draws=[drawCamera,drawAI,drawData,drawReport];
+    const el=document.getElementById('cv'+idx);
+    if(!el||!draws[idx]) return;
+    function init(){
+      const W=el.offsetWidth,H=el.offsetHeight;
+      if(!W||!H){requestAnimationFrame(init);return;}
+      el.width=W; el.height=H;
+      draws[idx](el.getContext('2d'),W,H);
+    }
+    init();
+  }
+
+  // SLIDE 1: Cámara — scanlines + lens ring pulse
+  function drawCamera(ctx,W,H){
+    let t=0;
+    function frame(){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#0d0d0d'; ctx.fillRect(0,0,W,H);
+      // scanlines
+      for(let y=0;y<H;y+=4){
+        ctx.fillStyle=`rgba(255,255,255,${0.015+Math.sin(y*.1+t*.03)*.008})`;
+        ctx.fillRect(0,y,W,2);
+      }
+      // grid
+      ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
+      for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      // lens
+      const cx=W/2,cy=H/2;
+      for(let r=3;r>=1;r--){
+        const radius=60+r*22+Math.sin(t*.04)*6;
+        ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(255,255,255,${0.04*r})`;
+        ctx.lineWidth=1; ctx.stroke();
+      }
+      // lens inner
+      ctx.beginPath(); ctx.arc(cx,cy,58,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,255,255,.18)`; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,32,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,255,255,.3)`; ctx.lineWidth=1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,8,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,.2)'; ctx.fill();
+      // corner brackets
+      const b=24, o=40;
+      [[o,o],[W-o,o],[W-o,H-o],[o,H-o]].forEach(([bx,by])=>{
+        const sx=bx<W/2?1:-1, sy=by<H/2?1:-1;
+        ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(bx,by+sy*b); ctx.lineTo(bx,by); ctx.lineTo(bx+sx*b,by); ctx.stroke();
+      });
+      // REC dot
+      ctx.beginPath(); ctx.arc(W-36,28,5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,${80+Math.sin(t*.08)*80},80,${.6+Math.sin(t*.08)*.4})`; ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.3)'; ctx.font='500 9px Inter,sans-serif';
+      ctx.textAlign='left'; ctx.fillText('REC',W-26,32);
+      t++;
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  // SLIDE 2: IA — neural network with flowing particles
+  function drawAI(ctx,W,H){
+    const layers=[[W*.18],[W*.38,W*.38],[W*.58,W*.58,W*.58],[W*.78,W*.78],[W*.92]];
+    const yPositions=[[H/2],[H*.3,H*.7],[H*.2,H*.5,H*.8],[H*.35,H*.65],[H/2]];
+    let t=0;
+    const particles=[];
+    function addP(){
+      if(particles.length>20) return;
+      particles.push({lyr:0,node:0,t:0,speed:.02+Math.random()*.02});
+    }
+    function frame(){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#0d0d0d'; ctx.fillRect(0,0,W,H);
+      // connections
+      layers.forEach((lx,li)=>{
+        if(li===layers.length-1) return;
+        lx.forEach((x,ni)=>{
+          layers[li+1].forEach((nx,nj)=>{
+            ctx.beginPath(); ctx.moveTo(x,yPositions[li][ni]); ctx.lineTo(nx,yPositions[li+1][nj]);
+            ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1; ctx.stroke();
+          });
+        });
+      });
+      // nodes
+      layers.forEach((lx,li)=>{
+        lx.forEach((x,ni)=>{
+          const y=yPositions[li][ni];
+          const pulse=Math.sin(t*.05+li*.8+ni*.4);
+          ctx.beginPath(); ctx.arc(x,y,7+pulse*2,0,Math.PI*2);
+          ctx.fillStyle=`rgba(255,255,255,${.08+pulse*.04})`; ctx.fill();
+          ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+          ctx.fillStyle=`rgba(255,255,255,${.5+pulse*.3})`; ctx.fill();
+        });
+      });
+      // particles
+      if(t%12===0) addP();
+      particles.forEach((p,pi)=>{
+        p.t+=p.speed;
+        if(p.t>1){
+          p.t=0; p.lyr++;
+          if(p.lyr>=layers.length-1){particles.splice(pi,1);return;}
+          p.node=Math.floor(Math.random()*layers[p.lyr+1].length);
+        }
+        if(p.lyr>=layers.length) return;
+        const fromX=layers[p.lyr][p.node%layers[p.lyr].length];
+        const fromY=yPositions[p.lyr][p.node%yPositions[p.lyr].length];
+        const toX=layers[p.lyr+1] ? layers[p.lyr+1][p.node%layers[p.lyr+1].length] : fromX;
+        const toY=yPositions[p.lyr+1] ? yPositions[p.lyr+1][p.node%yPositions[p.lyr+1].length] : fromY;
+        const px=fromX+(toX-fromX)*p.t, py=fromY+(toY-fromY)*p.t;
+        ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,255,255,.8)'; ctx.fill();
+      });
+      t++;
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  // SLIDE 3: Datos — live bar chart updating
+  function drawData(ctx,W,H){
+    const labels=['07:00','07:15','07:30','07:45','08:00','08:15','08:30','08:45'];
+    let data=labels.map(()=>Math.floor(Math.random()*400+300));
+    let t=0;
+    function frame(){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#0d0d0d'; ctx.fillRect(0,0,W,H);
+      if(t%80===0) data=data.map(v=>Math.max(100,v+Math.floor(Math.random()*200-100)));
+      const pad=40, bw=(W-pad*2)/labels.length-8;
+      const maxV=Math.max(...data);
+      const chartH=H-pad*2;
+      // grid lines
+      for(let i=0;i<=4;i++){
+        const y=pad+chartH*(1-i/4);
+        ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
+      }
+      // bars
+      labels.forEach((lbl,i)=>{
+        const x=pad+i*(bw+8);
+        const bh=(data[i]/maxV)*chartH;
+        const y=pad+chartH-bh;
+        const alpha=.15+.55*(data[i]/maxV);
+        ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+        ctx.fillRect(x,y,bw,bh);
+        // label
+        ctx.fillStyle='rgba(255,255,255,.2)'; ctx.font='9px Inter,sans-serif';
+        ctx.textAlign='center'; ctx.fillText(lbl,x+bw/2,H-18);
+      });
+      // value on tallest bar
+      const maxIdx=data.indexOf(Math.max(...data));
+      const tx=pad+maxIdx*(bw+8)+bw/2;
+      const ty=pad+chartH-(data[maxIdx]/maxV)*chartH-8;
+      ctx.fillStyle='rgba(255,255,255,.7)'; ctx.font='bold 11px Inter,sans-serif';
+      ctx.textAlign='center'; ctx.fillText(data[maxIdx],tx,ty);
+      t++;
+      requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  // SLIDE 4: Reporte — documento con líneas que aparecen
+  function drawReport(ctx,W,H){
+    let t=0;
+    const lines=[
+      {y:.18,w:.6,h:12,alpha:.7},
+      {y:.26,w:.4,h:7,alpha:.35},
+      {y:.32,w:.5,h:7,alpha:.25},
+      {y:.40,w:.3,h:7,alpha:.2},
+      {y:.48,w:.45,h:7,alpha:.25},
+      {y:.56,w:.35,h:7,alpha:.2},
+      {y:.64,w:.55,h:5,alpha:.15},
+      {y:.69,w:.4,h:5,alpha:.12},
+      {y:.74,w:.45,h:5,alpha:.12},
+    ];
+    // mini chart coords
+    const cx=W*.65,cy=H*.45,cw=W*.28,ch=H*.22;
+    function frame(){
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle='#0d0d0d'; ctx.fillRect(0,0,W,H);
+      const docW=W*.6, docH=H*.8, docX=(W-docW)/2, docY=(H-docH)/2;
+      // doc shadow
+      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(docX+6,docY+6,docW,docH);
+      // doc
+      ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(docX,docY,docW,docH);
+      ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1;
+      ctx.strokeRect(docX,docY,docW,docH);
+      // lines of text
+      const progress=Math.min(1,(t-20)/60);
+      lines.forEach((l,i)=>{
+        const p=Math.min(1,Math.max(0,(progress*lines.length-i)/1));
+        if(p<=0) return;
+        const lx=docX+docW*.08, ly=docY+docH*l.y;
+        ctx.fillStyle=`rgba(255,255,255,${l.alpha*p})`;
+        ctx.fillRect(lx,ly,docW*l.w*p,l.h);
+      });
+      // mini chart in doc
+      if(progress>.5){
+        const cp=Math.min(1,(progress-.5)/.5);
+        const bdata=[40,65,48,80,55,90,72,60];
+        const bw=cw/(bdata.length+1);
+        bdata.forEach((v,i)=>{
+          const bh=(v/100)*ch*cp;
+          ctx.fillStyle=`rgba(255,255,255,${.2*cp})`;
+          ctx.fillRect(docX+docW*.34+i*bw,docY+docH*.45+ch-bh,bw*.7,bh);
+        });
+      }
+      // top header bar
+      ctx.fillStyle='rgba(255,255,255,.12)'; ctx.fillRect(docX,docY,docW,32);
+      ctx.fillStyle='rgba(255,255,255,.5)'; ctx.font='bold 9px Inter,sans-serif';
+      ctx.textAlign='left'; ctx.fillText('INFORME DE FLUJO VEHICULAR — RDH',docX+12,docY+20);
+      t++;
+      if(t<180) requestAnimationFrame(frame);
+      else { t=0; requestAnimationFrame(frame); }
+    }
+    frame();
+  }
+
+})();
 
 /* DASHBOARD DATA */
 const pc_names=['PC-01 · Av. Vicuña Mackenna','PC-02 · Av. Grecia','PC-03 · Av. Irarrázaval'];
